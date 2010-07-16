@@ -10,3 +10,137 @@ Size
 Time to compile
 Time to run
 
+[header]
+runlist=spectral
+size=test
+tune=base peak
+iterations=3
+feedback=true
+
+[default|default]
+pre_run=rm -f %(tmpfile)s
+configure_flags=--with-ghc "../../inplace/bin/stage2"
+run_flags=+RTS -s /home/dave/tmp/%(tmpfile)s
+post_run=slurp /home/dave/tmp/%(tmpfile)s
+
+fdo_build_flags_1=--dump-profile
+fdo_build_flags_2=--read-profile
+
+[default|base]
+configure_flags=--with-ghc "/usr/bin/ghc"
+build_flags= --ghc-flags -O
+
+[200.scc|base]
+configure_flags= --with-ghc "../../inplace/bin/stage2"
+build_flags= --ghc-flags "-O -fno-blah"
+run_flags= +RTS -a#0x33 -RTS
+
+[default|peak]
+build_flags= --ghc-flags "-O2"
+
+##
+[run]
+prog_opts=%(inputdir)s
+
+
+
+invoke :: Benchmark -> IO RunCommand
+invoke bm = 
+  let dir  = inputFilesBase bm
+      exe  = exeFile        bm
+      name = bmName         bm
+      iters = if (bmSize bm) == Ref then 20 else 1
+  fs <- Directory.readDir dir
+  files = concat $ intersperse " " fs
+  RunCommand {
+      command = exe
+      args    = files ++ ["-o "++name++".SCC --iters "++(show iters)]
+      output  = name ++ ".out"
+      error   = name ++ ".err"
+      diff    = name ++ ".SCC"
+    }
+
+defaultMain
+[ 
+  (Ref, {
+          args   = ["--iters 10 -i size10", "-o size10.out"]
+          output = [(File "size10.out", Digest 0x07d5cbff49a86dcc8b8b9ca89479b7fe89d825ab), (Stdout, Sha1 0x431)]
+        })
+  (Test, {
+          args   = ["--iters 1 -i size5", "-o size5.out"]
+          output = [(File "size5.out", Digest 0x43), (Stdout, Sha1 0x432)]
+        })
+]
+
+invoke :: FibonBenchmark -> IO (IO a)
+
+instance Benchmarkable FibonBenchmark
+where
+run (FibonBenchmark b) times =
+  system command args
+
+
+
+* compile time
+* code size
+* execution time
+* heap statistics
+* papi measurements
+
+
+options
+1) build separate program to run the real program
+  advantages: 
+    can pull down programs not written for bming and add with small wrapper
+
+2) integrate the running of the program with a criteron main
+  advantages:
+    can load data as a separate action not related to running the program
+
+  disadvantage:
+    how to validate results?
+
+module T where (
+  fibon
+)
+
+fibon :: InputSize -> BenchmarkInstance
+invoke _ = BenchmarkInstance {
+      configureFlags = []
+    , buildFlags     = []
+    , runFlags       = ["-i test.dat -o test.out"]
+    , output         = [(OutputFile "test.out", Diff "test.expected")]
+  }
+
+
+import Fibon.Imaginary.SCC
+import Fibon.Imaginary
+
+module RunConfig where
+runList = [Group Spectral, Single Fib]
+size = [Test]
+tune = [Base, Peak]
+iterations = 3
+
+config (Tune.Default, Fibon.Default) = do
+  replace ConfigureFlags "--ghc"
+  append  ConfigureFlags "--disable-optimization"
+  append  ConfigureFlags "--with-ghc ../../inplace/bin/ghc"
+
+config (Tune.Base, Fibon.Default) = do
+  append  ConfigureFlags "--ghc-options -O0"
+
+config (Tune.Peak, Fibon.Default) = do
+  append  ConfigureFlags "--ghc-options -O2"
+
+config (Peak, Group Spectral) = do
+  append  ConfigureFlags "--ghc-flags -fsome-special-flag"
+  append  RunFlags       "+RTS -a+PAPI_TOT_CYC"
+
+config (Base, Single Scc) = do
+  append  BuildFlags     "--ghc-flags -O"
+  append  RunFlags       "+RTS -a+PAPI_TOT_CYC"
+
+config(_tune,_bm) = do
+  nothingSpecial
+  
