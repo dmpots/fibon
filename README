@@ -1,0 +1,12 @@
+
+Drop in replacement for nofib in GHC
+Can be used to collect other kinds of info (papi numbers)
+By default will collect timing info
+Can be configured to collect other info (e.g. heap usage, compile time, etc)
+
+
+
+Size
+Time to compile
+Time to run
+
