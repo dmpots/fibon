@@ -1,9 +1,5 @@
-module Fibon.Types where
+module Fibon.BenchmarkInstance where
 
-data InputSize =
-    Ref
-  | Test
-  deriving(Eq, Show, Ord, Enum)
 
 data OutputDestination = 
     OutputFile String
@@ -26,11 +22,7 @@ data BenchmarkInstance = BenchmarkInstance {
     , output         :: [OutputDescription]
   } deriving (Show)
 
-data TuneSetting = 
-    Base 
-  | Peak 
-  | Default
-  deriving(Eq, Show, Ord, Enum)
+
    
 --data FibonBuilder = FibonBuilder { fibon :: InputSize -> BenchmarkInstance }
 

@@ -5,26 +5,35 @@ module Fibon.Benchmarks (
   , benchInstance
 )
 where
-import Fibon.Types
-import Fibon.Benchmarks.Spectral.Scc.Fibon.Config
+import Fibon.InputSize
+import Fibon.BenchmarkInstance
+import Fibon.Benchmarks.Spectral.Scc.Fibon.Instance as Scc_bm
 
-data ConfigSettingsGroup =
-    Group  FibonGroup
-  | Single FibonBenchmark
-  | Default
+data FibonBenchmark =
+    Scc
+    deriving(Show, Eq, Ord, Enum)
 
 data FibonGroup =
     SpectralGroup
   | RealGroup
   | ImaginaryGroup
-
-data FibonBenchmark =
-    Scc
+    deriving(Show, Eq, Ord, Enum)
 
 benchGroup :: FibonBenchmark -> FibonGroup
 benchGroup Scc = SpectralGroup
 
 benchInstance :: FibonBenchmark -> InputSize -> BenchmarkInstance
-benchInstance Scc = Fibon.Benchmarks.Spectral.Scc.Fibon.Config.fibon
+benchInstance Scc = Scc_bm.mkInstance
 
+groupBench :: FibonGroup -> [FibonBenchmark]
+groupBench SpectralGroup = [
+    Scc
+  ]
+groupBench RealGroup      = []
+groupBench ImaginaryGroup = []
+
+benchmarks :: [FibonBenchmark]
+benchmarks = [
+    Scc
+  ]
 

@@ -30,7 +30,10 @@ Executable fibon-run
   main-is:          Main.hs
   hs-source-dirs: tools/fibon-run
                   lib
-                  benchmarks/
+                  benchmarks
+                  config
   build-depends:  base >= 4 && < 5
+                , containers >= 0.3 && < 0.4
+                , mtl        >= 1.1 && < 1.2
 --  other-modules:  Fibon.Benchmarks
 
