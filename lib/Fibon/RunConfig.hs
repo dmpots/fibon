@@ -37,12 +37,12 @@ data BenchmarkConfigSelection =
   | ConfigBenchDefault
   deriving(Show, Eq, Ord)
 
-buildFlagConfig :: RunConfig
+mkFlagConfig :: RunConfig
                 -> FibonBenchmark
                 -> InputSize
                 -> TuneSetting
                 -> FlagConfig
-buildFlagConfig rc bm size tune = mergeConfig benchFlags configM
+mkFlagConfig rc bm size tune = mergeConfig benchFlags configM
   where
   configM = mapM_ (uncurry builder) [
         (ConfigTuneDefault, ConfigBenchDefault)

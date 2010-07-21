@@ -48,6 +48,6 @@ dumpInstance rc inst@(bm, size, tune) = do
   putStrLn (take 68 $ repeat '-')
   putStrLn (show inst)
   putStrLn (take 68 $ repeat '-')
-  putStrLn (show $ buildFlagConfig rc bm size tune)
+  putStrLn (show $ mkFlagConfig rc bm size tune)
 
 
