@@ -11,7 +11,7 @@ config :: RunConfig
 config = RunConfig {
     configId = "default"
   , runList  = [RunGroup SpectralGroup]
-  , sizeList = [Test]
+  , sizeList = [Test, Ref]
   , tuneList = [Base, Peak]
   , iterations = 3
   , flagsBuilder = flags
@@ -29,8 +29,8 @@ flags (ConfigTune Base) ConfigBenchDefault = do
 flags (ConfigTune Peak) ConfigBenchDefault = do
   append  ConfigureFlags "--ghc-options -O2"
 
-flags (ConfigTuneDefault) (ConfigBench Scc)= do
-  append  ConfigureFlags "--ghc-options -O3"
+--flags (ConfigTuneDefault) (ConfigBench Scc)= do
+--  append  ConfigureFlags "--ghc-options -O3"
 
 flags _ _ = do
   done

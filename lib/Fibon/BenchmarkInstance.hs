@@ -1,5 +1,5 @@
 module Fibon.BenchmarkInstance where
-
+import Fibon.FlagConfig
 
 data OutputDestination = 
     OutputFile String
@@ -16,9 +16,7 @@ data ValidationOption =
 type OutputDescription = (OutputDestination, ValidationOption)
 
 data BenchmarkInstance = BenchmarkInstance {
-      configureFlags :: [String]
-    , buildFlags     :: [String]
-    , runFlags       :: [String] 
+      flagConfig     :: FlagConfig
     , output         :: [OutputDescription]
     , localPath      :: FilePath
     , exeName        :: String

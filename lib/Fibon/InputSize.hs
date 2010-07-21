@@ -4,7 +4,7 @@ module Fibon.InputSize(
 where
 
 data InputSize =
-    Ref
-  | Test
+    Test
+  | Ref
   deriving(Eq, Show, Ord, Enum)
 

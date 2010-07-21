@@ -1,5 +1,6 @@
 module Fibon.RunConfig where
 import Fibon.Benchmarks
+import Fibon.BenchmarkInstance
 import Fibon.InputSize
 import Fibon.ConfigMonad
 
@@ -36,14 +37,22 @@ data BenchmarkConfigSelection =
   | ConfigBenchDefault
   deriving(Show, Eq, Ord)
 
-
-{- Config Order
-def,def
-tune,def
-def,group
-tune,group
-def,bench
-tune,bench
--}
-
+buildFlagConfig :: RunConfig
+                -> FibonBenchmark
+                -> InputSize
+                -> TuneSetting
+                -> FlagConfig
+buildFlagConfig rc bm size tune = mergeConfig benchFlags configM
+  where
+  configM = mapM_ (uncurry builder) [
+        (ConfigTuneDefault, ConfigBenchDefault)
+      , (ConfigTune tune  , ConfigBenchDefault)
+      , (ConfigTuneDefault, ConfigBenchGroup group)
+      , (ConfigTune tune  , ConfigBenchGroup group)
+      , (ConfigTuneDefault, ConfigBench bm)
+      , (ConfigTune tune  , ConfigBench bm)
+    ]
+  builder    = flagsBuilder rc
+  group      = benchGroup bm
+  benchFlags = flagConfig $ benchInstance bm size
 
