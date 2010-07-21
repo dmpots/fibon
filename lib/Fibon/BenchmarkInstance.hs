@@ -20,6 +20,8 @@ data BenchmarkInstance = BenchmarkInstance {
     , buildFlags     :: [String]
     , runFlags       :: [String] 
     , output         :: [OutputDescription]
+    , localPath      :: FilePath
+    , exeName        :: String
   } deriving (Show)
 
 

@@ -25,15 +25,16 @@ benchGroup Scc = SpectralGroup
 benchInstance :: FibonBenchmark -> InputSize -> BenchmarkInstance
 benchInstance Scc = Scc_bm.mkInstance
 
-groupBench :: FibonGroup -> [FibonBenchmark]
-groupBench SpectralGroup = [
+{-
+groupBenchmarks :: FibonGroup -> [FibonBenchmark]
+groupBenchmarks SpectralGroup = [
     Scc
   ]
-groupBench RealGroup      = []
-groupBench ImaginaryGroup = []
+groupBenchmarks RealGroup      = []
+groupBenchmarks ImaginaryGroup = []
 
 benchmarks :: [FibonBenchmark]
 benchmarks = [
     Scc
   ]
-
+-}

@@ -11,5 +11,7 @@ mkInstance _ = BenchmarkInstance {
     , buildFlags     = []
     , runFlags       = []
     , output         = [(Stdout, Diff "scc.stdout")]
+    , localPath      = "benchmarks/Fibon/Benchmarks/Spectral/Scc"
+    , exeName        = "scc"
   }
 

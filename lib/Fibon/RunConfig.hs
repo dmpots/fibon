@@ -4,15 +4,16 @@ import Fibon.InputSize
 import Fibon.ConfigMonad
 
 data RunConfig = RunConfig {
-      configId   :: ConfigId
-    , sizeList   :: [InputSize]
-    , tuneList   :: [TuneSetting]
-    , runList    :: [BenchmarkRunSelection]
-    , iterations :: Int
-    , configBuilder :: (TuneSelection, BenchmarkConfigSelection) -> ConfigMonad ()
+      configId     :: ConfigId
+    , sizeList     :: [InputSize]
+    , tuneList     :: [TuneSetting]
+    , runList      :: [BenchmarkRunSelection]
+    , iterations   :: Int
+    , flagsBuilder :: FlagBuilder
   }
 
 type ConfigId = String
+type FlagBuilder = TuneSelection -> BenchmarkConfigSelection -> ConfigMonad
 
 data TuneSetting = 
     Base 
@@ -20,7 +21,7 @@ data TuneSetting =
   deriving(Eq, Show, Ord, Enum)
 
 data TuneSelection =
-    ConfigTuneSpecific TuneSetting 
+    ConfigTune TuneSetting
   | ConfigTuneDefault
   deriving(Show, Eq, Ord)
 
