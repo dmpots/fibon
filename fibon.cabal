@@ -27,14 +27,19 @@ Cabal-version:       >=1.2
 --  build-depends:    base >= 4 && < 5
 
 Executable fibon-run
-  main-is:          Main.hs
+  main-is:          Fibon/Run/Main.hs
   ghc-options: -Wall
-  hs-source-dirs: tools/fibon-run/Fibon/Run
+  hs-source-dirs: tools/fibon-run
                   lib
                   benchmarks
                   config
   build-depends:  base >= 4 && < 5
-                , containers >= 0.3 && < 0.4
-                , mtl        >= 1.1 && < 1.2
+                , containers  >= 0.3     && < 0.4
+                , mtl         >= 1.1     && < 1.2
+                , pretty-show >= 1.1     && < 1.2
+                , directory   >= 1.0.1   && < 1.2
+                , filepath    >= 1.1.0.3 && < 1.2
+                , hslogger    >= 1.0.10  && < 1.1
+                , process     >= 1.0.1.2 && < 1.1
 --  other-modules:  Fibon.Benchmarks
 

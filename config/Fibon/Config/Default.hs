@@ -11,8 +11,10 @@ config :: RunConfig
 config = RunConfig {
     configId = "default"
   , runList  = [RunGroup SpectralGroup]
-  , sizeList = [Test, Ref]
-  , tuneList = [Base, Peak]
+  --, sizeList = [Test, Ref]
+  --, tuneList = [Base, Peak]
+  , sizeList = [Test]
+  , tuneList = [Base]
   , iterations = 3
   , flagsBuilder = flags
   }
