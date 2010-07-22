@@ -26,10 +26,10 @@ flags ConfigTuneDefault ConfigBenchDefault = do
   done
 
 flags (ConfigTune Base) ConfigBenchDefault = do
-  append  ConfigureFlags "--ghc-options -O0"
+  append  ConfigureFlags "--ghc-option=-O0"
 
 flags (ConfigTune Peak) ConfigBenchDefault = do
-  append  ConfigureFlags "--ghc-options -O2"
+  append  ConfigureFlags "--ghc-option=-O2"
 
 --flags (ConfigTuneDefault) (ConfigBench Scc)= do
 --  append  ConfigureFlags "--ghc-options -O3"

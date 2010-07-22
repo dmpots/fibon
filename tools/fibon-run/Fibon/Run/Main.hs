@@ -3,6 +3,7 @@ module Main (
 )
 where 
 import Control.Monad
+import Control.Exception
 import Data.Char
 import Data.List
 --import qualified Data.Map as Map
@@ -12,6 +13,7 @@ import Fibon.RunConfig
 import Fibon.Run.Commands
 import Fibon.Run.Log as Log
 import System.Directory
+import System.FilePath
 --import Text.Show.Pretty
 import Text.Printf
 
@@ -20,8 +22,11 @@ main :: IO ()
 main = do
   setupLogger
   Log.notice "Starting Run"
-  uniq <- chooseUniqueName workingDir (configId runConfig)
-  let bundles = (makeBundles runConfig workingDir uniq)
+  uniq       <- chooseUniqueName workingDir (configId runConfig)
+  currentDir <- getCurrentDirectory
+  let workingDir = currentDir </> "run"
+      benchPath  = currentDir
+      bundles    = (makeBundles runConfig workingDir benchPath uniq)
   mapM_ runAndReport bundles
   Log.notice "Finished Run"
   where
@@ -31,12 +36,22 @@ main = do
 runAndReport :: BenchmarkBundle -> IO ()
 runAndReport bundle = do
   Log.notice $ "Running: "++ name
-  result <- runBundle bundle
+  cd <- getCurrentDirectory -- Save Current Directory
+  result <- try (runBundle bundle)
+  -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
-    Left e  -> do Log.warn $ "Error running: "  ++ name
-                  Log.warn $ "        =====> "  ++ e
-    Right _ -> Log.notice $ "Finished: "++ name
-  where name = bundleName bundle
+    Left  ioe -> logError (show (ioe :: IOError))
+    Right r   -> 
+      case r of
+        Left e  -> logError e
+        Right _ -> Log.notice $ "Finished: "++ name
+  setCurrentDirectory cd    -- Restore Previous Directory
+  where 
+  name = bundleName bundle
+  logError s = do Log.warn $ "Error running: "  ++ name
+                  Log.warn $ "        =====> "  ++ s
+
+
 
 defaultConfig :: RunConfig
 defaultConfig =
@@ -49,11 +64,15 @@ availableConfigs = Map.singleton (configId c) c
   c = DefaultConfig.config
 -}
 
-makeBundles :: RunConfig -> FilePath -> String -> [BenchmarkBundle]
-makeBundles rc workingDir uniq = map bundle bms
+makeBundles :: RunConfig
+            -> FilePath  -- ^ Working directory
+            -> FilePath  -- ^ Benchmark base path
+            -> String    -- ^ Unique Id
+            -> [BenchmarkBundle]
+makeBundles rc workingDir benchPath uniq = map bundle bms
   where
   bundle (bm, size, tune) =
-    mkBundle rc bm workingDir uniq size tune
+    mkBundle rc bm workingDir benchPath uniq size tune
   bms = sort
         [(bm, size, tune) |
                       size <- (sizeList rc),
