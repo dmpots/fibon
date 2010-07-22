@@ -22,15 +22,14 @@ main :: IO ()
 main = do
   setupLogger
   Log.notice "Starting Run"
-  uniq       <- chooseUniqueName workingDir (configId runConfig)
   currentDir <- getCurrentDirectory
   let workingDir = currentDir </> "run"
       benchPath  = currentDir
-      bundles    = (makeBundles runConfig workingDir benchPath uniq)
+  uniq       <- chooseUniqueName workingDir (configId runConfig)
+  let bundles    = (makeBundles runConfig workingDir benchPath uniq)
   mapM_ runAndReport bundles
   Log.notice "Finished Run"
   where
-  workingDir = "run"
   runConfig  = defaultConfig
 
 runAndReport :: BenchmarkBundle -> IO ()

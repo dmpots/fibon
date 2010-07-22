@@ -1,4 +1,3 @@
-{-# LANGUAGE ScopedTypeVariables #-}
 module Fibon.Run.Commands (
     runBundle
   , mkBundle
@@ -43,6 +42,7 @@ runOne bb = do
   sanityCheck bb
   prepConfigure bb
   runConfigure  bb
+  runBuild bb
 
 sanityCheck :: BenchmarkBundle -> FibonRunMonad
 sanityCheck bb = do
@@ -66,12 +66,24 @@ prepConfigure bb = do
   ud = (workDir bb) </> (unique bb)
 
 runConfigure :: BenchmarkBundle -> FibonRunMonad
-runConfigure bb = do
+runConfigure bb =
+  runCabalCommand bb "configure" configureFlags
+
+runBuild :: BenchmarkBundle -> FibonRunMonad
+runBuild bb =
+  runCabalCommand bb "build" buildFlags
+
+runCabalCommand :: BenchmarkBundle
+                -> String
+                -> (FlagConfig -> [String])
+                -> FibonRunMonad
+runCabalCommand bb cmd flagsSelector =
   doInDir (pathToBench bb) $ exec cabal fullArgs
   where
   fullArgs = ourArgs ++ userArgs
-  userArgs = (configureFlags . fullFlags) bb
-  ourArgs  = ["configure", "--builddir="++(pathToBuild bb)]
+  userArgs = (flagsSelector . fullFlags) bb
+  ourArgs  = [cmd, "--builddir="++(pathToBuild bb)]
+
 
 doInDir :: FilePath -> FibonRunMonad -> FibonRunMonad
 doInDir fp action = do
@@ -111,12 +123,6 @@ pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
 pathToBuild :: BenchmarkBundle -> FilePath
 pathToBuild bb = (workDir bb) </> (unique bb)
 {-
-configure bundle = do
-  configure -d workDir/benchmark.unique/tuneSetting/inputSize
-
-build bundle = do
-  build     -d workDir/benchmark.unique/tuneSetting/inputSize
-
 run = do
   pushd workDir/benchmark.unique/tuneSetting/inputSize/build/exeName
   for iters

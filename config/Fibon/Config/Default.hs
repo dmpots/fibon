@@ -23,6 +23,7 @@ flags :: FlagBuilder
 flags ConfigTuneDefault ConfigBenchDefault = do
   append ConfigureFlags "--ghc"
   append ConfigureFlags "--disable-optimization"
+  append BuildFlags "-v"
   done
 
 flags (ConfigTune Base) ConfigBenchDefault = do
