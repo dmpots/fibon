@@ -41,5 +41,10 @@ Executable fibon-run
                 , filepath    >= 1.1.0.3 && < 1.2
                 , hslogger    >= 1.0.10  && < 1.1
                 , process     >= 1.0.1.2 && < 1.1
+
+                , criterion   >= 0.5.0.1 && < 0.6
+                , statistics  >= 0.5.1.0 && < 0.6
+                , mwc-random  >= 0.5.0.0 && < 0.6
+                , vector      >= 0.6.0.2 && < 0.7
 --  other-modules:  Fibon.Benchmarks
 

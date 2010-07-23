@@ -5,8 +5,9 @@ where
 
 import Data.List
 import Fibon.FlagConfig
-import Fibon.Run.Log as Log
 import Fibon.Run.BenchmarkBundle
+import Fibon.Run.BenchmarkRunner as Runner
+import Fibon.Run.Log as Log
 import Control.Monad.Error
 import System.Directory
 import System.Exit
@@ -21,11 +22,12 @@ runBundle bb = runErrorT (runOne bb)
 
 runOne :: BenchmarkBundle -> FibonRunMonad
 runOne bb = do
-  sanityCheck bb
+  sanityCheck   bb
   prepConfigure bb
   runConfigure  bb
-  runBuild bb
-  prepRun bb
+  runBuild      bb
+  prepRun       bb
+  runRun        bb
 
 sanityCheck :: BenchmarkBundle -> FibonRunMonad
 sanityCheck bb = do
@@ -64,6 +66,18 @@ prepRun bb = do
     , pathToSizeOutputFiles
     , pathToAllOutputFiles
     ]
+
+runRun :: BenchmarkBundle -> FibonRunMonad
+runRun bb =  do
+  res <- io $ Runner.run bb
+  io $ Log.info (show res)
+  return ()
+{-
+  doInDir (pathToCabalBuild bb) $ exec exe fullArgs
+  where
+  exe      = "." </> (exeName  . benchDetails) bb
+  fullArgs = (runFlags . fullFlags) bb
+-}
 
 copyFiles :: BenchmarkBundle
           -> (BenchmarkBundle -> FilePath)

@@ -10,6 +10,7 @@ module Fibon.Run.BenchmarkBundle (
   , pathToAllInputFiles
   , pathToAllOutputFiles
   , pathToSizeDataFiles
+  , flatRunCommand
 )
 where
 
@@ -21,6 +22,13 @@ import Fibon.FlagConfig
 import Fibon.InputSize
 import Fibon.RunConfig
 import System.FilePath
+
+-- For Benchmarkable Instance
+import Criterion
+import Control.Exception
+import Fibon.Run.Log as Log
+import System.Directory
+import System.Process
 
 data BenchmarkBundle = BenchmarkBundle {
       benchmark     :: FibonBenchmark
@@ -93,3 +101,37 @@ pathToAllDataFiles = pathToDataFiles "all"
 pathToDataFiles :: FilePath -> FilePath -> BenchmarkBundle -> FilePath
 pathToDataFiles size subDir bb =
   (pathToBench bb) </> "data" </> size </> subDir
+
+benchCommand :: BenchmarkBundle -> (String, [String])
+benchCommand bb = (exe, fullArgs)
+  where
+  exe      = "." </> (exeName  . benchDetails) bb
+  fullArgs = (runFlags . fullFlags) bb
+
+flatRunCommand :: BenchmarkBundle -> String
+flatRunCommand bb = cmd
+  where
+  cmd        = exe ++ (concatMap (' ':) args)
+  (exe,args) = benchCommand bb
+
+
+instance Benchmarkable BenchmarkBundle where
+  run bb times = do
+    curDir <- getCurrentDirectory
+    bracket_ (setCurrentDirectory runDir)
+             (setCurrentDirectory curDir)
+             (mapM_ (const doIt) [1..times])
+    where
+    runDir     = pathToCabalBuild bb
+    doIt       = runBenchmarkExe exe args
+    (exe,args) = benchCommand bb
+  
+runBenchmarkExe :: FilePath -> [String] -> IO ()
+runBenchmarkExe cmd args = do
+  (_exit, _out, _err) <- readProcessWithExitCode cmd args []
+  return ()
+  --Log.debug ("COMMAND: "++fullCommand)
+  --Log.debug ("STDOUT: \n"++out)
+  --Log.debug ("STDERR: \n"++err)
+  --where
+  --fullCommand = cmd ++ (concatMap (' ':) args)
