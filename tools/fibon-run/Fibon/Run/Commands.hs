@@ -1,36 +1,17 @@
 module Fibon.Run.Commands (
     runBundle
-  , mkBundle
-  , bundleName
-  , BenchmarkBundle(..)
 )
 where
 
-import Data.Char
 import Data.List
-import Fibon.Benchmarks
-import Fibon.BenchmarkInstance
 import Fibon.FlagConfig
-import Fibon.InputSize
-import Fibon.RunConfig
 import Fibon.Run.Log as Log
+import Fibon.Run.BenchmarkBundle
 import Control.Monad.Error
 import System.Directory
 import System.Exit
 import System.FilePath
 import System.Process
-
-data BenchmarkBundle = BenchmarkBundle {
-      benchmark     :: FibonBenchmark
-    , workDir       :: FilePath
-    , benchDir      :: FilePath
-    , unique        :: String
-    , iters         :: Int
-    , tuneSetting   :: TuneSetting
-    , inputSize     :: InputSize
-    , fullFlags     :: FlagConfig
-    , benchDetails  :: BenchmarkInstance
-  } deriving (Show)
 
 type GenFibonRunMonad a = ErrorT String IO a
 type FibonRunMonad = GenFibonRunMonad ()
@@ -124,77 +105,6 @@ doInDir fp action = do
   action
   io $ setCurrentDirectory dir
 
-mkBundle :: RunConfig
-         -> FibonBenchmark
-         -> FilePath -- ^ working directory
-         -> FilePath -- ^ benchmarks directory
-         -> String   -- ^ unique id
-         -> InputSize
-         -> TuneSetting
-         -> BenchmarkBundle
-mkBundle rc bm wd bmsDir uniq size tune =
-  BenchmarkBundle {
-      benchmark     = bm
-    , workDir       = wd
-    , benchDir      = bmsDir
-    , unique        = uniq
-    , iters         = (iterations rc)
-    , tuneSetting   = tune
-    , inputSize     = size
-    , fullFlags     = mkFlagConfig rc bm size tune
-    , benchDetails  = benchInstance bm size
-  }
-
-bundleName :: BenchmarkBundle -> String
-bundleName bb = concat $ intersperse "-"
-  [(show $ benchmark bb), (show $ tuneSetting bb), (show $ inputSize bb)]
-
-pathToBench :: BenchmarkBundle -> FilePath
-pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
-
-pathToBuild :: BenchmarkBundle -> FilePath
-pathToBuild bb = (workDir bb) </> (unique bb) </> (bundleName bb)
-
-pathToCabalBuild :: BenchmarkBundle -> FilePath
-pathToCabalBuild bb =
-  (workDir bb) </> (unique bb) </> (bundleName bb) </> "build"
-               </> (exeName.benchDetails $ bb)
-
-pathToSizeInputFiles :: BenchmarkBundle -> FilePath
-pathToSizeInputFiles = pathToSizeDataFiles "input"
-
-pathToSizeOutputFiles :: BenchmarkBundle -> FilePath
-pathToSizeOutputFiles = pathToSizeDataFiles "output"
-
-pathToAllInputFiles :: BenchmarkBundle -> FilePath
-pathToAllInputFiles = pathToAllDataFiles "input"
-
-pathToAllOutputFiles :: BenchmarkBundle -> FilePath
-pathToAllOutputFiles = pathToAllDataFiles "output"
-
-pathToSizeDataFiles :: FilePath -> BenchmarkBundle -> FilePath
-pathToSizeDataFiles subDir bb = pathToDataFiles size subDir bb
-  where
-  size = (map toLower $ show $ inputSize bb)
-
-pathToAllDataFiles :: FilePath -> BenchmarkBundle -> FilePath
-pathToAllDataFiles = pathToDataFiles "all"
-
-pathToDataFiles :: FilePath -> FilePath -> BenchmarkBundle -> FilePath
-pathToDataFiles size subDir bb =
-  (pathToBench bb) </> "data" </> size </> subDir
-{-
-run = do
-  pushd workDir/benchmark.unique/tuneSetting/inputSize/build/exeName
-  for iters
-    criterion run ./exeName ++ runFlags
-  popd
-  
-prepRun = do
-  cp -R localPath/inputs/InputSize/* workDir/benchmark.unique/tuneSetting/inputSize/build/exeName
--}
---build :: BenchmarkBundle -> IO (Either Failure Success)
---build
 cabal :: FilePath
 cabal = "cabal"
 
