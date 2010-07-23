@@ -6,6 +6,7 @@ module Fibon.Run.Commands (
 )
 where
 
+import Data.Char
 import Data.List
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
@@ -43,6 +44,7 @@ runOne bb = do
   prepConfigure bb
   runConfigure  bb
   runBuild bb
+  prepRun bb
 
 sanityCheck :: BenchmarkBundle -> FibonRunMonad
 sanityCheck bb = do
@@ -72,6 +74,36 @@ runConfigure bb =
 runBuild :: BenchmarkBundle -> FibonRunMonad
 runBuild bb =
   runCabalCommand bb "build" buildFlags
+
+prepRun :: BenchmarkBundle -> FibonRunMonad
+prepRun bb = do
+  mapM_ (copyFiles bb) [
+      pathToSizeInputFiles
+    , pathToAllInputFiles
+    , pathToSizeOutputFiles
+    , pathToAllOutputFiles
+    ]
+
+copyFiles :: BenchmarkBundle
+          -> (BenchmarkBundle -> FilePath)
+          -> FibonRunMonad
+copyFiles bb pathSelector = do
+  dExists <- io $ doesDirectoryExist srcPath
+  if not dExists
+    then do return ()
+    else do
+      io $ Log.info ("Copying files\n  from: "++srcPath++"\n  to: "++dstPath)
+      files <- io $ getDirectoryContents srcPath
+      let realFiles = filter (\f -> f /= "." && f /= "..") files
+      io $ Log.info ("Copying files: "++(show realFiles))
+      mapM_ cp realFiles
+      return ()
+  where
+  srcPath = pathSelector bb
+  dstPath = pathToCabalBuild bb
+  cp f    = do
+    io $ copyFile (srcPath </> baseName) (dstPath </> baseName)
+    where baseName = snd (splitFileName f)
 
 runCabalCommand :: BenchmarkBundle
                 -> String
@@ -121,7 +153,36 @@ pathToBench :: BenchmarkBundle -> FilePath
 pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
 
 pathToBuild :: BenchmarkBundle -> FilePath
-pathToBuild bb = (workDir bb) </> (unique bb)
+pathToBuild bb = (workDir bb) </> (unique bb) </> (bundleName bb)
+
+pathToCabalBuild :: BenchmarkBundle -> FilePath
+pathToCabalBuild bb =
+  (workDir bb) </> (unique bb) </> (bundleName bb) </> "build"
+               </> (exeName.benchDetails $ bb)
+
+pathToSizeInputFiles :: BenchmarkBundle -> FilePath
+pathToSizeInputFiles = pathToSizeDataFiles "input"
+
+pathToSizeOutputFiles :: BenchmarkBundle -> FilePath
+pathToSizeOutputFiles = pathToSizeDataFiles "output"
+
+pathToAllInputFiles :: BenchmarkBundle -> FilePath
+pathToAllInputFiles = pathToAllDataFiles "input"
+
+pathToAllOutputFiles :: BenchmarkBundle -> FilePath
+pathToAllOutputFiles = pathToAllDataFiles "output"
+
+pathToSizeDataFiles :: FilePath -> BenchmarkBundle -> FilePath
+pathToSizeDataFiles subDir bb = pathToDataFiles size subDir bb
+  where
+  size = (map toLower $ show $ inputSize bb)
+
+pathToAllDataFiles :: FilePath -> BenchmarkBundle -> FilePath
+pathToAllDataFiles = pathToDataFiles "all"
+
+pathToDataFiles :: FilePath -> FilePath -> BenchmarkBundle -> FilePath
+pathToDataFiles size subDir bb =
+  (pathToBench bb) </> "data" </> size </> subDir
 {-
 run = do
   pushd workDir/benchmark.unique/tuneSetting/inputSize/build/exeName
