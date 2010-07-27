@@ -36,10 +36,10 @@ runBundle bb = runM $ do
   SanityComplete   <- runAction Sanity
   BuildComplete br <- runAction Build
   RunComplete   rr <- runAction Run
-  return $ FibonResult br rr
+  return $ FibonResult (bundleName bb) br rr
   where runM a = runReaderT (runErrorT a) bb
 
-data BuildResult = BuildResult {
+data BuildData = BuildData {
       buildTime :: Double  -- ^ Time to build the program
     , buildSize :: Integer -- ^ Size of the program
   }
@@ -47,13 +47,14 @@ data BuildResult = BuildResult {
 
 data ActionResult =
     SanityComplete
-  | BuildComplete BuildResult
-  | RunComplete   RunResult
+  | BuildComplete BuildData
+  | RunComplete   RunData
   deriving(Show)
 
 data FibonResult = FibonResult {
-      buildResult :: BuildResult
-    , runResult   :: RunResult
+      benchName   :: String
+    , buildData   :: BuildData
+    , runData     :: RunData
   } deriving(Show)
 
 data FibonError =
@@ -108,10 +109,10 @@ runConfigure = do
   _ <- runCabalCommand "configure" configureFlags
   return ()
 
-runBuild :: FibonRunMonad BuildResult
+runBuild :: FibonRunMonad BuildData
 runBuild = do
   time <- runCabalCommand "build" buildFlags
-  return $ BuildResult {buildTime = time, buildSize = 0}
+  return $ BuildData {buildTime = time, buildSize = 0}
 
 prepRun :: FibonRunMonad ()
 prepRun = do
@@ -122,12 +123,14 @@ prepRun = do
     , pathToAllOutputFiles
     ]
 
-runRun :: FibonRunMonad RunResult
+runRun :: FibonRunMonad RunData
 runRun =  do
   bb <- ask
   res <- io $ Runner.run bb
   io $ Log.info (show res)
-  return res
+  case res of
+    Success timing -> return timing
+    Failure msg    -> throwError $ RunError (show msg)
 
 copyFiles :: (BenchmarkBundle -> FilePath)
           -> FibonRunMonad ()

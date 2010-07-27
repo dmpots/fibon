@@ -41,10 +41,11 @@ runAndReport bundle = do
   -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
     Left  ioe -> logError (show (ioe :: IOError))
-    Right r   -> 
-      case r of
-        Left e  -> logError (show e)
-        Right _ -> Log.notice $ "Finished: "++ name
+    Right res ->
+      case res of
+        Left  e -> logError (show e)
+        Right r -> do Log.notice $ "Finished: "++ name
+                      Log.notice $ show r
   setCurrentDirectory cd    -- Restore Previous Directory
   where 
   name = bundleName bundle

@@ -17,7 +17,7 @@ import System.Random.MWC
 import Text.Printf
 
 data RunResult =
-    Success {runTime :: TimeMeasurement, extraStats :: (Maybe ExtraStats)}
+    Success RunData
   | Failure RunFailure
   deriving (Show)
 
@@ -34,6 +34,10 @@ data TimeMeasurement = TimeMeasurement {
     , meanStddevUB :: Double
     , meanStddevLB :: Double
   }
+  deriving (Show)
+
+data RunData =
+  RunData {runTime :: TimeMeasurement, extraStats :: ExtraStats}
   deriving (Show)
 
 type ExtraStats = [(String, String)]
@@ -76,26 +80,27 @@ criterionRun env bb = do
                resample gen ests numResamples times :: IO [Resample]
       ci    <- getConfigItem $ fromLJ cfgConfInterval
       let [em,es] = bootstrapBCA ci times ests res
-      return Success  {
-                  runTime =
-                    TimeMeasurement {
-                        meanTime     = estPoint em
-                      , meanTimeLB   = estLowerBound em
-                      , meanTimeUB   = estUpperBound em
-                      , meanStddev   = estPoint es
-                      , meanStddevUB = estLowerBound es
-                      , meanStddevLB = estUpperBound es
-                    }
-                , extraStats = ghcStats
-            }
+      let runData = RunData {
+                    runTime =
+                      TimeMeasurement {
+                          meanTime     = estPoint em
+                        , meanTimeLB   = estLowerBound em
+                        , meanTimeUB   = estUpperBound em
+                        , meanStddev   = estPoint es
+                        , meanStddevUB = estLowerBound es
+                        , meanStddevLB = estUpperBound es
+                      }
+                  , extraStats = ghcStats
+      }
+      return $ Success runData
     Just err ->
       return $ Failure err
 
 checkResult :: BenchmarkBundle -> IO (Maybe RunFailure)
 checkResult bb = return Nothing
 
-readExtraStats :: BenchmarkBundle -> IO (Maybe ExtraStats)
-readExtraStats bb = return Nothing
+readExtraStats :: BenchmarkBundle -> IO ExtraStats
+readExtraStats bb = return []
 
 preAction :: IO ()
 preAction = return ()
