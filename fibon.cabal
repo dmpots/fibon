@@ -41,6 +41,7 @@ Executable fibon-run
                 , filepath    == 1.1.*
                 , hslogger    == 1.0.*
                 , process     == 1.0.*
+                , time        == 1.1.*
 
                 , criterion   == 0.5.*
                 , statistics  == 0.6.*

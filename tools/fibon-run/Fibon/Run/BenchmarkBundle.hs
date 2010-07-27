@@ -26,7 +26,7 @@ import System.FilePath
 -- For Benchmarkable Instance
 import Criterion
 import Control.Exception
-import Fibon.Run.Log as Log
+--import Fibon.Run.Log as Log
 import System.Directory
 import System.Process
 

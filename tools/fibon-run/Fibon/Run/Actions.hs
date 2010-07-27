@@ -1,46 +1,60 @@
 module Fibon.Run.Actions (
       runBundle
     , runAction
+    , FibonResult(..)
 )
 where
 
 import Data.List
+import Data.Time.Clock.POSIX
 import Fibon.FlagConfig
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.BenchmarkRunner as Runner
 import Fibon.Run.Log as Log
 import Control.Monad.Error
+import Control.Monad.Reader
 import System.Directory
 import System.Exit
 import System.FilePath
 import System.Process
 
-type GenFibonRunMonad a = ErrorT FibonError IO a
-type FibonRunMonad = GenFibonRunMonad ()
+type FibonRunMonad = ErrorT FibonError (ReaderT BenchmarkBundle IO)
+--type FibonRunMonad    = GenFibonRunMonad FibonResult
 
-data RunAction =
+
+--newtype FibonRunMonad a = FibonRunMonad {
+--    runFibon :: ErrorT FibonError (ReaderT BenchmarkBundle IO) a
+--  }
+
+data Action =
     Sanity
   | Build
   | Run
 
-runBundle :: BenchmarkBundle -> IO (Either FibonError ())
-runBundle bb = runErrorT $ do
-  runAction Sanity bb
-  runAction Build  bb
-  runAction Run    bb
+runBundle :: BenchmarkBundle -> IO (Either FibonError FibonResult)
+runBundle bb = runM $ do
+  SanityComplete   <- runAction Sanity
+  BuildComplete br <- runAction Build
+  RunComplete   rr <- runAction Run
+  return $ FibonResult br rr
+  where runM a = runReaderT (runErrorT a) bb
 
 data BuildResult = BuildResult {
       buildTime :: Double  -- ^ Time to build the program
     , buildSize :: Integer -- ^ Size of the program
   }
+  deriving(Show)
 
-data FibonResult =
+data ActionResult =
     SanityComplete
-  | BuildComplete   {buildResult :: BuildResult}
-  | FibonComplete {
+  | BuildComplete BuildResult
+  | RunComplete   RunResult
+  deriving(Show)
+
+data FibonResult = FibonResult {
       buildResult :: BuildResult
     , runResult   :: RunResult
-  }
+  } deriving(Show)
 
 data FibonError =
     BuildError   String
@@ -51,22 +65,27 @@ data FibonError =
 instance Error FibonError where
   strMsg = OtherError
 
-runAction :: RunAction -> BenchmarkBundle -> FibonRunMonad
-runAction Sanity bb = do
-  sanityCheck   bb
-runAction Build bb = do
-  prepConfigure bb
-  runConfigure  bb
-  runBuild      bb
-runAction Run bb = do
-  prepRun       bb
-  runRun        bb
+runAction :: Action -> FibonRunMonad ActionResult
+runAction Sanity = do
+  sanityCheck
+  return SanityComplete
+runAction Build = do
+  prepConfigure
+  runConfigure
+  r <- runBuild
+  return $ BuildComplete r
+runAction Run = do
+  prepRun
+  r <- runRun
+  return $ RunComplete r
 
-sanityCheck :: BenchmarkBundle -> FibonRunMonad
-sanityCheck bb = do
+sanityCheck :: FibonRunMonad ()
+sanityCheck = do
+  bb <- ask
+  let bmPath = pathToBench bb
   io $ Log.info ("Checking for directory:\n"++bmPath)
   bdExists <- io $ doesDirectoryExist bmPath
-  unless bdExists (throwError bmPathDoesNotExist)
+  unless bdExists (throwError $ pathDoesNotExist bmPath)
   io $ Log.info ("Checking for cabal file in:\n"++bmPath)
   dirContents <- io $ getDirectoryContents bmPath
   let cabalFile = find (".cabal" `isSuffixOf`) dirContents
@@ -74,44 +93,51 @@ sanityCheck bb = do
     Just f  -> io $ Log.info ("Found cabal file: "++f)
     Nothing -> throwError cabalFileDoesNotExist
   where
-  bmPath = pathToBench bb
-  bmPathDoesNotExist = SanityError("Directory:\n"++bmPath++" does not exist")
+  pathDoesNotExist bmP  = SanityError("Directory:\n"++bmP++" does not exist")
   cabalFileDoesNotExist = SanityError "Can not find cabal file"
 
-prepConfigure :: BenchmarkBundle -> FibonRunMonad
-prepConfigure bb = do
+prepConfigure :: FibonRunMonad ()
+prepConfigure = do
+  bb <- ask
+  let ud = (workDir bb) </> (unique bb)
   udExists <- io $ doesDirectoryExist ud
   unless udExists (io $ createDirectory ud)
-  where
-  ud = (workDir bb) </> (unique bb)
 
-runConfigure :: BenchmarkBundle -> FibonRunMonad
-runConfigure bb =
-  runCabalCommand bb "configure" configureFlags
+runConfigure :: FibonRunMonad ()
+runConfigure = do
+  _ <- runCabalCommand "configure" configureFlags
+  return ()
 
-runBuild :: BenchmarkBundle -> FibonRunMonad
-runBuild bb =
-  runCabalCommand bb "build" buildFlags
+runBuild :: FibonRunMonad BuildResult
+runBuild = do
+  time <- runCabalCommand "build" buildFlags
+  return $ BuildResult {buildTime = time, buildSize = 0}
 
-prepRun :: BenchmarkBundle -> FibonRunMonad
-prepRun bb = do
-  mapM_ (copyFiles bb) [
+prepRun :: FibonRunMonad ()
+prepRun = do
+  mapM_ copyFiles [
       pathToSizeInputFiles
     , pathToAllInputFiles
     , pathToSizeOutputFiles
     , pathToAllOutputFiles
     ]
 
-runRun :: BenchmarkBundle -> FibonRunMonad
-runRun bb =  do
+runRun :: FibonRunMonad RunResult
+runRun =  do
+  bb <- ask
   res <- io $ Runner.run bb
   io $ Log.info (show res)
-  return ()
+  return res
 
-copyFiles :: BenchmarkBundle
-          -> (BenchmarkBundle -> FilePath)
-          -> FibonRunMonad
-copyFiles bb pathSelector = do
+copyFiles :: (BenchmarkBundle -> FilePath)
+          -> FibonRunMonad ()
+copyFiles pathSelector = do
+  bb <- ask
+  let srcPath = pathSelector bb
+      dstPath = pathToCabalBuild bb
+      cp f    = do
+        io $ copyFile (srcPath </> baseName) (dstPath </> baseName)
+        where baseName = snd (splitFileName f)
   dExists <- io $ doesDirectoryExist srcPath
   if not dExists
     then do return ()
@@ -122,39 +148,37 @@ copyFiles bb pathSelector = do
       io $ Log.info ("Copying files: "++(show realFiles))
       mapM_ cp realFiles
       return ()
-  where
-  srcPath = pathSelector bb
-  dstPath = pathToCabalBuild bb
-  cp f    = do
-    io $ copyFile (srcPath </> baseName) (dstPath </> baseName)
-    where baseName = snd (splitFileName f)
 
-runCabalCommand :: BenchmarkBundle
-                -> String
+runCabalCommand :: String
                 -> (FlagConfig -> [String])
-                -> FibonRunMonad
-runCabalCommand bb cmd flagsSelector =
-  doInDir (pathToBench bb) $ exec cabal fullArgs
-  where
-  fullArgs = ourArgs ++ userArgs
-  userArgs = (flagsSelector . fullFlags) bb
-  ourArgs  = [cmd, "--builddir="++(pathToBuild bb)]
+                -> FibonRunMonad Double
+runCabalCommand cmd flagsSelector = do
+  bb <- ask
+  let fullArgs = ourArgs ++ userArgs
+      userArgs = (flagsSelector . fullFlags) bb
+      ourArgs  = [cmd, "--builddir="++(pathToBuild bb)]
+  (_, time) <- timeInDir (pathToBench bb) $ exec cabal fullArgs
+  return time
 
 
-doInDir :: FilePath -> FibonRunMonad -> FibonRunMonad
-doInDir fp action = do
+timeInDir :: FilePath -> FibonRunMonad a -> FibonRunMonad (a, Double)
+timeInDir fp action = do
   dir <- io $ getCurrentDirectory
   io $ setCurrentDirectory fp
-  action
+  start <- io $ getTime
+  r <- action
+  end <- io $ getTime
   io $ setCurrentDirectory dir
+  let !delta = end - start
+  return (r, delta)
 
 cabal :: FilePath
 cabal = "cabal"
 
-io :: IO a -> GenFibonRunMonad a
+io :: IO a -> FibonRunMonad a
 io = liftIO
 
-exec :: FilePath -> [String] -> FibonRunMonad
+exec :: FilePath -> [String] -> FibonRunMonad ()
 exec cmd args = do
   (exit, out, err) <- io $ readProcessWithExitCode cmd args []
   io $ Log.info ("COMMAND: "++fullCommand)
@@ -173,4 +197,7 @@ joinWith a = concatMap (a:)
 
 stringify :: [String] -> String
 stringify = joinWith ' '
+
+getTime :: IO Double
+getTime = (fromRational . toRational) `fmap` getPOSIXTime
 
