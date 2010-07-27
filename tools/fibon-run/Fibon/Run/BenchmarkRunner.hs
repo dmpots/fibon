@@ -64,7 +64,8 @@ criterionRun env bb = do
   liftIO . Log.info $ "   PWD: " ++ pwd
   liftIO . Log.info $ "   CMD: " ++ cmd
   liftIO . Log.info $ printf "\n!%s|%s|%s" bmk pwd cmd
-  times    <- runBenchmark env preAction bb postAction
+  --times    <- runBenchmark env preAction bb postAction
+  times    <- runBenchmark env bb
   failure  <- liftIO $ checkResult bb
   ghcStats <- liftIO $ readExtraStats bb
   numResamples <- getConfigItem $ fromLJ cfgResamples
