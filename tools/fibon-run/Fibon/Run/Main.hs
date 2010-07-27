@@ -10,7 +10,7 @@ import Data.List
 import Fibon.Benchmarks
 import Fibon.Config.Default as DefaultConfig
 import Fibon.RunConfig
-import Fibon.Run.Commands
+import Fibon.Run.Actions
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
 import System.Directory

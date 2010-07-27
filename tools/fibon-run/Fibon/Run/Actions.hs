@@ -1,5 +1,6 @@
-module Fibon.Run.Commands (
-    runBundle
+module Fibon.Run.Actions (
+      runBundle
+    , runAction
 )
 where
 
@@ -17,15 +18,41 @@ import System.Process
 type GenFibonRunMonad a = ErrorT String IO a
 type FibonRunMonad = GenFibonRunMonad ()
 
-runBundle :: BenchmarkBundle -> IO (Either String ())
-runBundle bb = runErrorT (runOne bb)
+data RunAction =
+    Sanity
+  | Build
+  | Run
 
-runOne :: BenchmarkBundle -> FibonRunMonad
-runOne bb = do
+runBundle :: BenchmarkBundle -> IO (Either String ())
+runBundle bb = runErrorT $ do
+  runAction Sanity bb
+  runAction Build  bb
+  runAction Run    bb
+
+{-
+-- Basic idea here but chanage String to error type
+-- Enrich the result type to contain Build Time results
+build :: BenchmarkBundle -> GenFibonMonad ()
+build = runAction Build
+
+run :: BenchmarkBundle -> GenFibonMonad (RunResult)
+run = runAction Run
+
+go :: BenchmarkBundle -> IO (Either String RunResult) =
+go bb = runErrorT $ do
+  build bb
+  r <- run bb
+  return r
+-}
+
+runAction :: RunAction -> BenchmarkBundle -> FibonRunMonad
+runAction Sanity bb = do
   sanityCheck   bb
+runAction Build bb = do
   prepConfigure bb
   runConfigure  bb
   runBuild      bb
+runAction Run bb = do
   prepRun       bb
   runRun        bb
 
@@ -72,12 +99,6 @@ runRun bb =  do
   res <- io $ Runner.run bb
   io $ Log.info (show res)
   return ()
-{-
-  doInDir (pathToCabalBuild bb) $ exec exe fullArgs
-  where
-  exe      = "." </> (exeName  . benchDetails) bb
-  fullArgs = (runFlags . fullFlags) bb
--}
 
 copyFiles :: BenchmarkBundle
           -> (BenchmarkBundle -> FilePath)
