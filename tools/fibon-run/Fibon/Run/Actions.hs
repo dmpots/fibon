@@ -15,7 +15,7 @@ import System.Exit
 import System.FilePath
 import System.Process
 
-type GenFibonRunMonad a = ErrorT String IO a
+type GenFibonRunMonad a = ErrorT FibonError IO a
 type FibonRunMonad = GenFibonRunMonad ()
 
 data RunAction =
@@ -23,27 +23,33 @@ data RunAction =
   | Build
   | Run
 
-runBundle :: BenchmarkBundle -> IO (Either String ())
+runBundle :: BenchmarkBundle -> IO (Either FibonError ())
 runBundle bb = runErrorT $ do
   runAction Sanity bb
   runAction Build  bb
   runAction Run    bb
 
-{-
--- Basic idea here but chanage String to error type
--- Enrich the result type to contain Build Time results
-build :: BenchmarkBundle -> GenFibonMonad ()
-build = runAction Build
+data BuildResult = BuildResult {
+      buildTime :: Double  -- ^ Time to build the program
+    , buildSize :: Integer -- ^ Size of the program
+  }
 
-run :: BenchmarkBundle -> GenFibonMonad (RunResult)
-run = runAction Run
+data FibonResult =
+    SanityComplete
+  | BuildComplete   {buildResult :: BuildResult}
+  | FibonComplete {
+      buildResult :: BuildResult
+    , runResult   :: RunResult
+  }
 
-go :: BenchmarkBundle -> IO (Either String RunResult) =
-go bb = runErrorT $ do
-  build bb
-  r <- run bb
-  return r
--}
+data FibonError =
+    BuildError   String
+  | SanityError  String
+  | RunError     String
+  | OtherError   String -- ^ For general IO exceptions
+  deriving (Show)
+instance Error FibonError where
+  strMsg = OtherError
 
 runAction :: RunAction -> BenchmarkBundle -> FibonRunMonad
 runAction Sanity bb = do
@@ -60,15 +66,17 @@ sanityCheck :: BenchmarkBundle -> FibonRunMonad
 sanityCheck bb = do
   io $ Log.info ("Checking for directory:\n"++bmPath)
   bdExists <- io $ doesDirectoryExist bmPath
-  unless bdExists (throwError $ "Directory:\n"++bmPath++" does not exist")
+  unless bdExists (throwError bmPathDoesNotExist)
   io $ Log.info ("Checking for cabal file in:\n"++bmPath)
   dirContents <- io $ getDirectoryContents bmPath
   let cabalFile = find (".cabal" `isSuffixOf`) dirContents
   case cabalFile of
     Just f  -> io $ Log.info ("Found cabal file: "++f)
-    Nothing -> throwError $ "Can not find cabal file"
+    Nothing -> throwError cabalFileDoesNotExist
   where
   bmPath = pathToBench bb
+  bmPathDoesNotExist = SanityError("Directory:\n"++bmPath++" does not exist")
+  cabalFileDoesNotExist = SanityError "Can not find cabal file"
 
 prepConfigure :: BenchmarkBundle -> FibonRunMonad
 prepConfigure bb = do
@@ -154,7 +162,7 @@ exec cmd args = do
   io $ Log.info ("STDERR: \n"++err)
   case exit of
     ExitSuccess   -> return ()
-    ExitFailure _ -> throwError msg
+    ExitFailure _ -> throwError $ BuildError msg
   where
   msg         = "Failed running command: " ++ fullCommand 
   fullCommand = cmd ++ stringify args

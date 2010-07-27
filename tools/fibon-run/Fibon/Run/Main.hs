@@ -43,7 +43,7 @@ runAndReport bundle = do
     Left  ioe -> logError (show (ioe :: IOError))
     Right r   -> 
       case r of
-        Left e  -> logError e
+        Left e  -> logError (show e)
         Right _ -> Log.notice $ "Finished: "++ name
   setCurrentDirectory cd    -- Restore Previous Directory
   where 
