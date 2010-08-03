@@ -3,8 +3,9 @@ module Fibon.Run.BenchmarkBundle (
   , mkBundle
   , bundleName
   , pathToBench
-  , pathToBuild
-  , pathToCabalBuild
+  , pathToCabalWorkDir
+  , pathToExeBuildDir
+  , pathToExe
   , pathToSizeInputFiles
   , pathToSizeOutputFiles
   , pathToAllInputFiles
@@ -70,13 +71,15 @@ bundleName bb = concat $ intersperse "-"
 pathToBench :: BenchmarkBundle -> FilePath
 pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
 
-pathToBuild :: BenchmarkBundle -> FilePath
-pathToBuild bb = (workDir bb) </> (unique bb) </> (bundleName bb)
+pathToCabalWorkDir :: BenchmarkBundle -> FilePath
+pathToCabalWorkDir bb = (workDir bb) </> (unique bb) </> (bundleName bb)
 
-pathToCabalBuild :: BenchmarkBundle -> FilePath
-pathToCabalBuild bb =
-  (workDir bb) </> (unique bb) </> (bundleName bb) </> "build"
-               </> (exeName.benchDetails $ bb)
+pathToExeBuildDir :: BenchmarkBundle -> FilePath
+pathToExeBuildDir bb = 
+  (pathToCabalWorkDir bb) </> "build" </> (exeName.benchDetails $ bb)
+
+pathToExe :: BenchmarkBundle -> FilePath
+pathToExe bb = (pathToExeBuildDir bb) </> (exeName.benchDetails $ bb)
 
 pathToSizeInputFiles :: BenchmarkBundle -> FilePath
 pathToSizeInputFiles = pathToSizeDataFiles "input"
@@ -122,7 +125,7 @@ instance Benchmarkable BenchmarkBundle where
              (setCurrentDirectory curDir)
              (mapM_ (const doIt) [1..times])
     where
-    runDir     = pathToCabalBuild bb
+    runDir     = pathToExeBuildDir bb
     doIt       = runBenchmarkExe exe args
     (exe,args) = benchCommand bb
   

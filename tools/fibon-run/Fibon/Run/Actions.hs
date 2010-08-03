@@ -11,6 +11,7 @@ import Fibon.FlagConfig
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.BenchmarkRunner as Runner
 import Fibon.Run.Log as Log
+import qualified Fibon.Run.SysTools as SysTools
 import Control.Monad.Error
 import Control.Monad.Reader
 import System.Directory
@@ -41,7 +42,7 @@ runBundle bb = runM $ do
 
 data BuildData = BuildData {
       buildTime :: Double  -- ^ Time to build the program
-    , buildSize :: Integer -- ^ Size of the program
+    , buildSize :: String  -- ^ Size of the program
   }
   deriving(Show)
 
@@ -112,7 +113,8 @@ runConfigure = do
 runBuild :: FibonRunMonad BuildData
 runBuild = do
   time <- runCabalCommand "build" buildFlags
-  return $ BuildData {buildTime = time, buildSize = 0}
+  size <- runSizeCommand
+  return $ BuildData {buildTime = time, buildSize = size}
 
 prepRun :: FibonRunMonad ()
 prepRun = do
@@ -137,7 +139,7 @@ copyFiles :: (BenchmarkBundle -> FilePath)
 copyFiles pathSelector = do
   bb <- ask
   let srcPath = pathSelector bb
-      dstPath = pathToCabalBuild bb
+      dstPath = pathToExeBuildDir bb
       cp f    = do
         io $ copyFile (srcPath </> baseName) (dstPath </> baseName)
         where baseName = snd (splitFileName f)
@@ -159,9 +161,14 @@ runCabalCommand cmd flagsSelector = do
   bb <- ask
   let fullArgs = ourArgs ++ userArgs
       userArgs = (flagsSelector . fullFlags) bb
-      ourArgs  = [cmd, "--builddir="++(pathToBuild bb)]
-  (_, time) <- timeInDir (pathToBench bb) $ exec cabal fullArgs
+      ourArgs  = [cmd, "--builddir="++(pathToCabalWorkDir bb)]
+  (_, time) <- timeInDir (pathToBench bb) $ exec SysTools.cabal fullArgs
   return time
+
+runSizeCommand :: FibonRunMonad String
+runSizeCommand = do
+  bb <- ask
+  exec (SysTools.size) [(pathToExe bb)]
 
 
 timeInDir :: FilePath -> FibonRunMonad a -> FibonRunMonad (a, Double)
@@ -175,20 +182,17 @@ timeInDir fp action = do
   let !delta = end - start
   return (r, delta)
 
-cabal :: FilePath
-cabal = "cabal"
-
 io :: IO a -> FibonRunMonad a
 io = liftIO
 
-exec :: FilePath -> [String] -> FibonRunMonad ()
+exec :: FilePath -> [String] -> FibonRunMonad String
 exec cmd args = do
   (exit, out, err) <- io $ readProcessWithExitCode cmd args []
   io $ Log.info ("COMMAND: "++fullCommand)
   io $ Log.info ("STDOUT: \n"++out)
   io $ Log.info ("STDERR: \n"++err)
   case exit of
-    ExitSuccess   -> return ()
+    ExitSuccess   -> return out
     ExitFailure _ -> throwError $ BuildError msg
   where
   msg         = "Failed running command: " ++ fullCommand 

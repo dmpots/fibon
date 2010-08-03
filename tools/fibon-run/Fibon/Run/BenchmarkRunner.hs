@@ -61,7 +61,7 @@ criterionRunMany bbs = do
 criterionRun :: Environment -> BenchmarkBundle -> Criterion RunResult
 criterionRun env bb = do
   let bmk = (bundleName bb)
-      pwd = (pathToCabalBuild bb)
+      pwd = (pathToExeBuildDir bb)
       cmd = (flatRunCommand bb)
   liftIO . Log.info $ "Running Benchmark "
   liftIO . Log.info $ "   BMK: " ++ bmk
