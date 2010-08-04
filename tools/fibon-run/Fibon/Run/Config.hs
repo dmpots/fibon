@@ -1,4 +1,4 @@
-module Fibon.RunConfig where
+module Fibon.Run.Config where
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
 import Fibon.InputSize

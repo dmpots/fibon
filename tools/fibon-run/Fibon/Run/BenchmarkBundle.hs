@@ -26,7 +26,7 @@ import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
 import Fibon.FlagConfig
 import Fibon.InputSize
-import Fibon.RunConfig
+import Fibon.Run.Config
 import System.FilePath
 import System.IO
 import System.Process

@@ -1,8 +1,8 @@
-module Fibon.Config.Default (
+module Fibon.Run.Config.Default (
   config
 )
 where
-import Fibon.RunConfig
+import Fibon.Run.Config
 import Fibon.Benchmarks
 import Fibon.InputSize
 import Fibon.ConfigMonad

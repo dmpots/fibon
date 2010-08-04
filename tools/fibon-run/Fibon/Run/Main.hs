@@ -8,8 +8,8 @@ import Data.Char
 import Data.List
 --import qualified Data.Map as Map
 import Fibon.Benchmarks
-import Fibon.Config.Default as DefaultConfig
-import Fibon.RunConfig
+import Fibon.Run.Config.Default as DefaultConfig
+import Fibon.Run.Config
 import Fibon.Run.Actions
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
