@@ -3,9 +3,6 @@ module Fibon.Run.Config.Default (
 )
 where
 import Fibon.Run.Config
-import Fibon.Benchmarks
-import Fibon.InputSize
-import Fibon.ConfigMonad
 
 config :: RunConfig
 config = RunConfig {

@@ -9,7 +9,7 @@ Author:              David M Peixotto
 Maintainer:          dmp@rice.edu
 Stability:           Experimental
 Category:            Testing
-Build-type:          Simple
+Build-type:          Custom
 
 -- Extra files to be distributed with the package, such as examples or
 -- a README.
@@ -29,6 +29,7 @@ Cabal-version:       >=1.2
 Executable fibon-run
   main-is:          Fibon/Run/Main.hs
   ghc-options: -Wall
+  include-dirs: config
   hs-source-dirs: tools/fibon-run
                   lib
                   benchmarks
@@ -42,6 +43,7 @@ Executable fibon-run
                 , hslogger    == 1.0.*
                 , process     == 1.0.*
                 , time        == 1.1.*
+                , template-haskell == 2.4.*
 
                 , criterion   == 0.5.*
                 , statistics  == 0.6.*

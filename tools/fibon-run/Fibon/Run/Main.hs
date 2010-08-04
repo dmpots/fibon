@@ -6,10 +6,11 @@ import Control.Monad
 import Control.Exception
 import Data.Char
 import Data.List
---import qualified Data.Map as Map
+import qualified Data.Map as Map
 import Fibon.Benchmarks
 import Fibon.Run.Config.Default as DefaultConfig
 import Fibon.Run.Config
+import Fibon.Run.Config.Local as Local
 import Fibon.Run.Actions
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
@@ -53,15 +54,12 @@ runAndReport bundle = do
 
 
 defaultConfig :: RunConfig
-defaultConfig =
-  DefaultConfig.config
+defaultConfig = snd . head $ Map.toList availableConfigs
 
-{-
 availableConfigs :: Map.Map ConfigId RunConfig
-availableConfigs = Map.singleton (configId c) c
+availableConfigs = Map.fromList $ (configId def, def) : Local.configs 
   where
-  c = DefaultConfig.config
--}
+  def = DefaultConfig.config
 
 makeBundles :: RunConfig
             -> FilePath  -- ^ Working directory

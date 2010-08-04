@@ -1,4 +1,20 @@
-module Fibon.Run.Config where
+module Fibon.Run.Config (
+    Fibon.ConfigMonad.append
+  , Fibon.ConfigMonad.done
+  , Fibon.ConfigMonad.ConfigParameter(..)
+  , Fibon.Benchmarks.FibonGroup(..)
+  , Fibon.Benchmarks.FibonBenchmark(..)
+  , Fibon.InputSize.InputSize(..)
+  , RunConfig(..)
+  , TuneSetting(..)
+  , TuneSelection(..)
+  , BenchmarkRunSelection(..)
+  , BenchmarkConfigSelection(..)
+  , FlagBuilder
+  , ConfigId
+  , mkFlagConfig
+)
+where
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
 import Fibon.InputSize
