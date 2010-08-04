@@ -11,7 +11,12 @@ module Fibon.Run.BenchmarkBundle (
   , pathToAllInputFiles
   , pathToAllOutputFiles
   , pathToSizeDataFiles
-  , flatRunCommand
+  , pathToStdoutFile
+  , pathToStderrFile
+  , pathToExeRunDir
+  , pathToStdinFile
+  , prettyRunCommand
+  , bundleProcessSpec
 )
 where
 
@@ -23,13 +28,9 @@ import Fibon.FlagConfig
 import Fibon.InputSize
 import Fibon.RunConfig
 import System.FilePath
-
--- For Benchmarkable Instance
-import Criterion
-import Control.Exception
---import Fibon.Run.Log as Log
-import System.Directory
+import System.IO
 import System.Process
+
 
 data BenchmarkBundle = BenchmarkBundle {
       benchmark     :: FibonBenchmark
@@ -78,6 +79,9 @@ pathToExeBuildDir :: BenchmarkBundle -> FilePath
 pathToExeBuildDir bb = 
   (pathToCabalWorkDir bb) </> "build" </> (exeName.benchDetails $ bb)
 
+pathToExeRunDir :: BenchmarkBundle -> FilePath
+pathToExeRunDir = pathToExeBuildDir
+
 pathToExe :: BenchmarkBundle -> FilePath
 pathToExe bb = (pathToExeBuildDir bb) </> (exeName.benchDetails $ bb)
 
@@ -105,36 +109,53 @@ pathToDataFiles :: FilePath -> FilePath -> BenchmarkBundle -> FilePath
 pathToDataFiles size subDir bb =
   (pathToBench bb) </> "data" </> size </> subDir
 
-benchCommand :: BenchmarkBundle -> (String, [String])
-benchCommand bb = (exe, fullArgs)
+pathToStdoutFile :: BenchmarkBundle -> FilePath
+pathToStdoutFile = pathToStdioFile "stdout"
+
+pathToStderrFile :: BenchmarkBundle -> FilePath
+pathToStderrFile = pathToStdioFile "stderr"
+
+pathToStdioFile :: String -> BenchmarkBundle -> FilePath
+pathToStdioFile name bb =
+  (pathToExeRunDir bb) </> (exeName.benchDetails $ bb) ++"."++name++".actual"
+
+pathToStdinFile :: BenchmarkBundle -> FilePath -> FilePath
+pathToStdinFile bb inFile = (pathToExeRunDir bb) </> inFile
+
+benchExeAndArgs :: BenchmarkBundle -> (String, [String])
+benchExeAndArgs bb = (exe, fullArgs)
   where
-  exe      = "." </> (exeName  . benchDetails) bb
+  exe      = pathToExe bb
   fullArgs = (runFlags . fullFlags) bb
 
-flatRunCommand :: BenchmarkBundle -> String
-flatRunCommand bb = cmd
+prettyRunCommand :: BenchmarkBundle -> String
+prettyRunCommand bb = cmd
   where
-  cmd        = exe ++ (concatMap (' ':) args)
-  (exe,args) = benchCommand bb
+  cmd        = exe  ++ (concatMap (' ':) fullArgs)
+  fullArgs   = args ++ stdioArgs
+  (exe,args) = benchExeAndArgs bb
+  stdioArgs  = [stdIn, stdOut, stdErr]
+  stdIn      = case (stdinInput.benchDetails $ bb) of
+                    Nothing -> ""
+                    Just f  -> pathToStdinFile bb f
+  stdOut     = "  > " ++ (pathToStdoutFile bb)
+  stdErr     = " 2> " ++ (pathToStderrFile bb)
 
+bundleProcessSpec :: BenchmarkBundle -> IO CreateProcess
+bundleProcessSpec bb = do
+  stdIn <-
+    case  (stdinInput.benchDetails $ bb) of
+      Nothing -> do return CreatePipe
+      Just f  -> do h <- openFile (pathToStdinFile bb f) ReadMode
+                    return (UseHandle h)
+  out <- openFile (pathToStdoutFile bb) WriteMode
+  err <- openFile (pathToStderrFile bb) WriteMode
+  return $ (proc exe args) {
+        cwd     = Just (pathToExeRunDir bb)
+      , std_in  = stdIn
+      , std_out = UseHandle out
+      , std_err = UseHandle err
+  }
+  where
+  (exe, args) = benchExeAndArgs bb
 
-instance Benchmarkable BenchmarkBundle where
-  run bb times = do
-    curDir <- getCurrentDirectory
-    bracket_ (setCurrentDirectory runDir)
-             (setCurrentDirectory curDir)
-             (mapM_ (const doIt) [1..times])
-    where
-    runDir     = pathToExeBuildDir bb
-    doIt       = runBenchmarkExe exe args
-    (exe,args) = benchCommand bb
-  
-runBenchmarkExe :: FilePath -> [String] -> IO ()
-runBenchmarkExe cmd args = do
-  (_exit, _out, _err) <- readProcessWithExitCode cmd args []
-  return ()
-  --Log.debug ("COMMAND: "++fullCommand)
-  --Log.debug ("STDOUT: \n"++out)
-  --Log.debug ("STDERR: \n"++err)
-  --where
-  --fullCommand = cmd ++ (concatMap (' ':) args)

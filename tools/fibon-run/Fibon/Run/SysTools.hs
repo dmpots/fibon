@@ -1,6 +1,7 @@
 module Fibon.Run.SysTools (
     size
-  , cabal  
+  , cabal
+  , diff
 )
 where
 
@@ -10,3 +11,5 @@ size = "size"
 cabal :: String
 cabal = "cabal"
 
+diff :: String
+diff = "diff"
