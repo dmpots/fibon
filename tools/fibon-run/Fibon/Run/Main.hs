@@ -36,7 +36,6 @@ main = do
 runAndReport :: BenchmarkBundle -> IO ()
 runAndReport bundle = do
   Log.notice $ "Running: "++ name
-  cd <- getCurrentDirectory -- Save Current Directory
   result <- try (runBundle bundle)
   -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
@@ -46,7 +45,6 @@ runAndReport bundle = do
         Left  e -> logError (show e)
         Right r -> do Log.notice $ "Finished: "++ name
                       Log.notice $ show r
-  setCurrentDirectory cd    -- Restore Previous Directory
   where 
   name = bundleName bundle
   logError s = do Log.warn $ "Error running: "  ++ name
