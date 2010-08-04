@@ -114,3 +114,4 @@ TAGS/
 #papi-ghc
 dist/
 run/
+config/
