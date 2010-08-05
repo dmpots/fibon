@@ -4,11 +4,8 @@ module Fibon.Run.Config.LocalConfigFinder (
 )
 where
 
-import Data.List
 import Language.Haskell.TH
-import System.Directory
 import System.FilePath
-import System.IO
 
 modulesFileName :: FilePath
 modulesFileName = "LocalConfigModules.txt"
