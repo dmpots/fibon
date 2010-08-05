@@ -29,29 +29,45 @@ main = do
       benchPath  = currentDir
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   let bundles    = (makeBundles runConfig workingDir benchPath uniq)
-  mapM_ runAndReport bundles
+  mapM_ (runAndReport Run) bundles
   Log.notice "Finished Run"
   where
   runConfig  = defaultConfig
 
-runAndReport :: BenchmarkBundle -> IO ()
-runAndReport bundle = do
-  Log.notice $ "Running: "++ name
-  result <- try (runBundle bundle)
+runAndReport :: Action -> BenchmarkBundle -> IO ()
+runAndReport action bundle = do
+  Log.notice $ "Running: "++ (bundleName bundle)++ " action= "++(show action)
+  case action of
+    Sanity -> run sanityCheckBundle  (const $ return ())
+    Build  -> run buildBundle        (const $ return ())
+    Run    -> run runBundle          (\(FibonResult _n _br rr) -> do
+                Log.notice (show rr)
+              )
+  return ()
+  where
+  run :: Show a => ActionRunner a -> (a -> IO ()) -> IO ()
+  run = runAndLogErrors bundle
+
+runAndLogErrors :: Show a
+                => BenchmarkBundle
+                -> ActionRunner a
+                -> (a -> IO ())
+                -> IO ()
+runAndLogErrors bundle act cont = do
+  result <- try (act bundle)
   -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
     Left  ioe -> logError (show (ioe :: IOError))
     Right res ->
       case res of
-        Left  e -> logError (show e)
+        Left  e -> logError (show e) >> return ()
         Right r -> do Log.notice $ "Finished: "++ name
-                      Log.notice $ show r
-  where 
-  name = bundleName bundle
-  logError s = do Log.warn $ "Error running: "  ++ name
-                  Log.warn $ "        =====> "  ++ s
-
-
+                      Log.info   $ show r
+                      cont r
+   where
+   name = bundleName bundle
+   logError s = do Log.warn $ "Error running: "  ++ name
+                   Log.warn $ "        =====> "  ++ s
 
 defaultConfig :: RunConfig
 defaultConfig = snd . head $ Map.toList availableConfigs

@@ -1,7 +1,11 @@
 module Fibon.Run.Actions (
       runBundle
-    , runAction
+    , buildBundle
+    , sanityCheckBundle
     , FibonResult(..)
+    , FibonError
+    , Action(..)
+    , ActionRunner
 )
 where
 
@@ -20,31 +24,14 @@ import System.FilePath
 import System.Process
 
 type FibonRunMonad = ErrorT FibonError (ReaderT BenchmarkBundle IO)
---type FibonRunMonad    = GenFibonRunMonad FibonResult
-
-
---newtype FibonRunMonad a = FibonRunMonad {
---    runFibon :: ErrorT FibonError (ReaderT BenchmarkBundle IO) a
---  }
 
 data Action =
     Sanity
   | Build
   | Run
+  deriving (Show)
 
-runBundle :: BenchmarkBundle -> IO (Either FibonError FibonResult)
-runBundle bb = runM $ do
-  SanityComplete   <- runAction Sanity
-  BuildComplete br <- runAction Build
-  RunComplete   rr <- runAction Run
-  return $ FibonResult (bundleName bb) br rr
-  where runM a = runReaderT (runErrorT a) bb
-
-data BuildData = BuildData {
-      buildTime :: Double  -- ^ Time to build the program
-    , buildSize :: String  -- ^ Size of the program
-  }
-  deriving(Show)
+type ActionRunner a = (BenchmarkBundle -> IO (Either FibonError a))
 
 data ActionResult =
     SanityComplete
@@ -66,6 +53,35 @@ data FibonError =
   deriving (Show)
 instance Error FibonError where
   strMsg = OtherError
+
+sanityCheckBundle :: BenchmarkBundle -> IO (Either FibonError ())
+sanityCheckBundle bb = runFibonMonad bb $ do
+  SanityComplete <- runAction Sanity
+  return ()
+
+buildBundle :: BenchmarkBundle -> IO (Either FibonError BuildData)
+buildBundle bb = runFibonMonad bb $ do
+  SanityComplete   <- runAction Sanity
+  BuildComplete br <- runAction Build
+  return br
+
+runBundle :: BenchmarkBundle -> IO (Either FibonError FibonResult)
+runBundle bb = runFibonMonad bb $ do
+  SanityComplete   <- runAction Sanity
+  BuildComplete br <- runAction Build
+  RunComplete   rr <- runAction Run
+  return $ FibonResult (bundleName bb) br rr
+
+runFibonMonad :: BenchmarkBundle
+              -> ErrorT FibonError (ReaderT BenchmarkBundle IO) a
+              -> IO (Either FibonError a)
+runFibonMonad bb a = runReaderT (runErrorT a) bb
+
+data BuildData = BuildData {
+      buildTime :: Double  -- ^ Time to build the program
+    , buildSize :: String  -- ^ Size of the program
+  }
+  deriving(Show)
 
 runAction :: Action -> FibonRunMonad ActionResult
 runAction Sanity = do
