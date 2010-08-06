@@ -3,6 +3,7 @@ module Fibon.Run.Actions (
     , buildBundle
     , sanityCheckBundle
     , FibonResult(..)
+    , BuildData(..)
     , FibonError
     , Action(..)
     , ActionRunner

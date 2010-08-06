@@ -23,24 +23,29 @@ import Text.Printf
 
 main :: IO ()
 main = do
-  setupLogger
-  Log.notice "Starting Run"
   currentDir <- getCurrentDirectory
   let workingDir = currentDir </> "run"
-      benchPath  = currentDir
+      benchPath  = currentDir </> "benchmarks"
+      logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
+  logFile    <- setupLogger logPath uniq
+  Log.notice  "Starting Run"
+  Log.notice ("Logging output to " ++ logFile)
   let bundles    = (makeBundles runConfig workingDir benchPath uniq)
   mapM_ (runAndReport Run) bundles
   Log.notice "Finished Run"
   where
   runConfig  = selectConfig (configId DefaultConfig.config)
 
+
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
-  Log.notice $ "Running: "++ (bundleName bundle)++ " action= "++(show action)
+  Log.notice $ "Running: "++ (bundleName bundle)++ " action="++(show action)
   case action of
     Sanity -> run sanityCheckBundle  (const $ return ())
-    Build  -> run buildBundle        (const $ return ())
+    Build  -> run buildBundle        (\(BuildData time _size) -> do
+                Log.notice (printf "Build completed in %0.2f seconds" time)
+              )
     Run    -> run runBundle          (\(FibonResult _n _br rr) -> do
                 Log.notice (show rr)
               )
@@ -62,8 +67,7 @@ runAndLogErrors bundle act cont = do
     Right res ->
       case res of
         Left  e -> logError (show e) >> return ()
-        Right r -> do Log.notice $ "Finished: "++ name
-                      Log.info   $ show r
+        Right r -> do Log.info   $ show r
                       cont r
    where
    name = bundleName bundle

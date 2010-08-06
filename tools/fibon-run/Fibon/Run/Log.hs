@@ -8,18 +8,29 @@ module Fibon.Run.Log (
 )
 where
 
+import Control.Monad
+import System.Directory
 import System.IO
 import System.Log.Logger
 import System.Log.Handler.Simple
+import Text.Printf
+import System.FilePath
 
 
 fibonLog :: String
 fibonLog = "Fibon"
 
-setupLogger :: IO ()
-setupLogger = do
-  sh <- verboseStreamHandler stdout DEBUG
-  updateGlobalLogger rootLoggerName (setLevel DEBUG . setHandlers [sh])
+setupLogger :: FilePath -> String -> IO FilePath
+setupLogger logDir runId = do
+  let logFileName = printf "%s.LOG" runId
+      logPath     = logDir </> logFileName
+  ldExists <- doesDirectoryExist logDir
+  unless ldExists (createDirectory logDir)
+  h  <- openFile logPath WriteMode
+  ch <- streamHandler        stdout NOTICE
+  fh <- verboseStreamHandler h      DEBUG
+  updateGlobalLogger rootLoggerName (setLevel DEBUG . setHandlers [ch,fh])
+  return logPath
 
 debug, info, notice, warn, error :: String -> IO ()
 debug  = debugM fibonLog

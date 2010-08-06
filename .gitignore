@@ -115,3 +115,5 @@ TAGS/
 dist/
 run/
 config/
+log/
+_T

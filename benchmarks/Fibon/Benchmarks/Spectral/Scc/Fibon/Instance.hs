@@ -15,7 +15,7 @@ mkInstance _ = BenchmarkInstance {
       }
     , stdinInput     = Nothing
     , output         = [(Stdout, Diff "scc.stdout.expected")]
-    , localPath      = "benchmarks/Fibon/Benchmarks/Spectral/Scc"
+    , localPath      = "Fibon/Benchmarks/Spectral/Scc"
     , exeName        = "scc"
   }
 
