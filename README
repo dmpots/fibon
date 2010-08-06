@@ -9,5 +9,10 @@ Can be configured to collect other info (e.g. heap usage, compile time, etc)
 -------------------------------------------------------------------
 TODO
 -------------------------------------------------------------------
+fibon-analyse
+  - write out data
+  
+Add more benchmarks
+
 
 
