@@ -6,6 +6,7 @@ import Control.Monad
 import Control.Exception
 import Data.Char
 import Data.List
+import Data.Maybe
 import qualified Data.Map as Map
 import Fibon.Benchmarks
 import Fibon.Run.Config.Default as DefaultConfig
@@ -32,7 +33,7 @@ main = do
   mapM_ (runAndReport Run) bundles
   Log.notice "Finished Run"
   where
-  runConfig  = defaultConfig
+  runConfig  = selectConfig (configId DefaultConfig.config)
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
@@ -69,8 +70,9 @@ runAndLogErrors bundle act cont = do
    logError s = do Log.warn $ "Error running: "  ++ name
                    Log.warn $ "        =====> "  ++ s
 
-defaultConfig :: RunConfig
-defaultConfig = snd . head $ Map.toList availableConfigs
+selectConfig :: ConfigId -> RunConfig
+selectConfig configName =
+  fromJust $ Map.lookup configName availableConfigs
 
 availableConfigs :: Map.Map ConfigId RunConfig
 availableConfigs = Map.fromList $ (configId def, def) : Local.configs 
