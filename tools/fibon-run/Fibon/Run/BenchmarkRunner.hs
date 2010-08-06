@@ -83,7 +83,7 @@ criterionRun clock bb = do
   liftIO . Log.info $ "   BMK: " ++ bmk
   liftIO . Log.info $ "   PWD: " ++ pwd
   liftIO . Log.info $ "   CMD: " ++ cmd
-  liftIO . Log.info $ printf "\n!%s|%s|%s" bmk pwd cmd
+  liftIO . Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
   --times    <- runBenchmark clock preAction bb postAction
   times    <- runBenchmark clock (runBenchmarkExe bb)
   failure  <- liftIO $ checkResult bb
