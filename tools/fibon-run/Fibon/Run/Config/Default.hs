@@ -12,7 +12,7 @@ config = RunConfig {
   --, tuneList = [Base, Peak]
   , sizeList = [Test]
   , tuneList = [Base]
-  , iterations = 3
+  , iterations = 10
   , flagsBuilder = flags
   }
 

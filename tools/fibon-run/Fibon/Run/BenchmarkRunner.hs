@@ -6,7 +6,6 @@ module Fibon.Run.BenchmarkRunner (
 )
 where
 
-import Control.Monad
 import Control.Monad.Trans
 import Criterion
 import Criterion.Config
@@ -56,24 +55,20 @@ data RunData =
 type ExtraStats = [(String, String)]
 
 run :: BenchmarkBundle -> IO RunResult
-run bb = (liftM head) $ runMany [bb]
-
-runMany :: [BenchmarkBundle] -> IO [RunResult]
-runMany = criterionRunMany
-
-criterionRunMany :: [BenchmarkBundle] -> IO [RunResult]
-criterionRunMany bbs = do
+run bb =
   let config = defaultConfig {
-        cfgSamples   = Last $ Just 10
+        cfgSamples   = Last $ Just (iters bb)
       , cfgVerbosity = Last $ Just Quiet
     }
+  in
   withConfig config $ do
-      liftIO . Log.info $ "Estimating clock accuracy"
-      -- using a fake environment during development
-      -- env      <- measureEnvironment
-      let clock = Environment 8.87908709523226e-6 8.753194443641173e-8
-      liftIO . Log.info $ (show clock)
-      mapM (criterionRun clock) bbs
+    liftIO $ Log.info $ "Estimating clock accuracy"
+    -- using a fake environment during development
+    -- env      <- measureEnvironment
+    let clock = Environment 8.87908709523226e-6 8.753194443641173e-8
+    liftIO $ Log.info $ (show clock)
+    criterionRun clock bb
+
 criterionRun :: Environment -> BenchmarkBundle -> Criterion RunResult
 criterionRun clock bb = do
   let bmk = (bundleName bb)
