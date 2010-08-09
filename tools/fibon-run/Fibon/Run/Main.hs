@@ -17,6 +17,10 @@ import Fibon.Run.BenchmarkBundle
 import qualified Fibon.Run.Log as Log
 import System.Directory
 import System.FilePath
+import System.Locale
+import Data.Time.Clock
+import Data.Time.Format
+import Data.Time.LocalTime
 --import Text.Show.Pretty
 import Text.Printf
 
@@ -29,15 +33,15 @@ main = do
       logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
-  Log.notice  "Starting Run"
+  startTime <- timeStamp
+  Log.notice ("Starting Run at   " ++ startTime)
   Log.notice ("Logging output to " ++ logFile)
   Log.notice ("Logging result to " ++ outFile)
-  let bundles    = (makeBundles runConfig workingDir benchPath uniq)
-  mapM_ (runAndReport Run) bundles
-  Log.notice "Finished Run"
+  mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchPath uniq)
+  endTime <- timeStamp
+  Log.notice ("Finished Run at   " ++ endTime)
   where
   runConfig  = selectConfig (configId DefaultConfig.config)
-
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
@@ -118,6 +122,11 @@ chooseUniqueName workingDir configName = do
   format :: Int -> String
   format d = printf "%04d.%s" d configName
 
+timeStamp :: IO String
+timeStamp = do
+  tz <- getCurrentTimeZone
+  t  <- getCurrentTime
+  return $ formatTime defaultTimeLocale "%F %T" (utcToLocalTime tz t)
 
 {-
 dumpConfig :: RunConfig -> IO ()

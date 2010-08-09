@@ -44,6 +44,7 @@ Executable fibon-run
                 , process     == 1.0.*
                 , time        == 1.1.*
                 , template-haskell
+                , old-locale  == 1.0.*
 
                 , criterion   == 0.5.*
                 , statistics  == 0.6.*
