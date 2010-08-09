@@ -14,7 +14,7 @@ import Fibon.Run.Config
 import Fibon.Run.Config.Local as Local
 import Fibon.Run.Actions
 import Fibon.Run.BenchmarkBundle
-import Fibon.Run.Log as Log
+import qualified Fibon.Run.Log as Log
 import System.Directory
 import System.FilePath
 --import Text.Show.Pretty
@@ -28,9 +28,10 @@ main = do
       benchPath  = currentDir </> "benchmarks"
       logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
-  logFile    <- setupLogger logPath uniq
+  (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
   Log.notice  "Starting Run"
   Log.notice ("Logging output to " ++ logFile)
+  Log.notice ("Logging result to " ++ outFile)
   let bundles    = (makeBundles runConfig workingDir benchPath uniq)
   mapM_ (runAndReport Run) bundles
   Log.notice "Finished Run"
@@ -46,8 +47,9 @@ runAndReport action bundle = do
     Build  -> run buildBundle        (\(BuildData time _size) -> do
                 Log.notice (printf "Build completed in %0.2f seconds" time)
               )
-    Run    -> run runBundle          (\(FibonResult _n _br rr) -> do
-                Log.notice (show rr)
+    Run    -> run runBundle          (\fr@(FibonResult _n _br _rr) -> do
+                -- Log.notice (show rr)
+                Log.result(show fr)
               )
   return ()
   where
@@ -67,8 +69,7 @@ runAndLogErrors bundle act cont = do
     Right res ->
       case res of
         Left  e -> logError (show e) >> return ()
-        Right r -> do Log.info   $ show r
-                      cont r
+        Right r -> cont r
    where
    name = bundleName bundle
    logError s = do Log.warn $ "Error running: "  ++ name

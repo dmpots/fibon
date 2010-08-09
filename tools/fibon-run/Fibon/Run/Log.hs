@@ -5,6 +5,7 @@ module Fibon.Run.Log (
   , warn
   , Fibon.Run.Log.error
   , setupLogger
+  , result
 )
 where
 
@@ -20,17 +21,23 @@ import System.FilePath
 fibonLog :: String
 fibonLog = "Fibon"
 
-setupLogger :: FilePath -> String -> IO FilePath
-setupLogger logDir runId = do
+resultLog :: String
+resultLog = "Fibon.Result"
+
+setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath)
+setupLogger logDir outDir runId = do
   let logFileName = printf "%s.LOG" runId
       logPath     = logDir </> logFileName
+      resultPath  = outDir </> (printf "%s.RESULTS" runId)
   ldExists <- doesDirectoryExist logDir
   unless ldExists (createDirectory logDir)
   h  <- openFile logPath WriteMode
   ch <- streamHandler        stdout NOTICE
   fh <- verboseStreamHandler h      DEBUG
+  rh <- fileHandler resultPath      DEBUG
   updateGlobalLogger rootLoggerName (setLevel DEBUG . setHandlers [ch,fh])
-  return logPath
+  updateGlobalLogger resultLog      (setLevel DEBUG . setHandlers [rh])
+  return (logPath, resultPath)
 
 debug, info, notice, warn, error :: String -> IO ()
 debug  = debugM fibonLog
@@ -39,3 +46,5 @@ notice = noticeM fibonLog
 warn   = warningM fibonLog
 error  = errorM fibonLog
 
+result :: String -> IO ()
+result = infoM "Fibon.Result"
