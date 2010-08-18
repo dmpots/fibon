@@ -107,7 +107,7 @@ expandBenchList :: [BenchmarkRunSelection] -> [FibonBenchmark]
 expandBenchList = concatMap expand
   where
   expand (RunSingle b) = [b]
-  expand (RunGroup  g) = groupBenchmarks g
+  expand (RunGroup  g) = filter (\b -> benchGroup b == g) allBenchmarks
 
 chooseUniqueName :: FilePath -> String -> IO String
 chooseUniqueName workingDir configName = do

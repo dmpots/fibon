@@ -7,7 +7,7 @@ import Fibon.Run.Config
 config :: RunConfig
 config = RunConfig {
     configId = "default"
-  , runList  = [RunGroup SpectralGroup]
+  , runList  = map RunSingle allBenchmarks
   --, sizeList = [Test, Ref]
   --, tuneList = [Base, Peak]
   , sizeList = [Test]

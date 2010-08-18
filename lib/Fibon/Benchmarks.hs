@@ -1,9 +1,9 @@
 module Fibon.Benchmarks (
-    FibonGroup(..)
-  , FibonBenchmark(..)
+    FibonBenchmark(..)
+  , FibonGroup(..)
   , benchGroup
   , benchInstance
-  , groupBenchmarks
+  , allBenchmarks
 )
 where
 import Fibon.InputSize
@@ -20,22 +20,12 @@ data FibonGroup =
   | ImaginaryGroup
     deriving(Show, Eq, Ord, Enum)
 
+allBenchmarks :: [FibonBenchmark]
+allBenchmarks = [Scc]
+
 benchGroup :: FibonBenchmark -> FibonGroup
 benchGroup Scc = SpectralGroup
 
 benchInstance :: FibonBenchmark -> InputSize -> BenchmarkInstance
 benchInstance Scc = Scc_bm.mkInstance
 
-groupBenchmarks :: FibonGroup -> [FibonBenchmark]
-groupBenchmarks SpectralGroup = [
-      Scc
-  ]
-groupBenchmarks RealGroup      = []
-groupBenchmarks ImaginaryGroup = []
-
-{-
-benchmarks :: [FibonBenchmark]
-benchmarks = [
-    Scc
-  ]
--}

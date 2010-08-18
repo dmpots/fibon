@@ -4,6 +4,7 @@ module Fibon.Run.Config (
   , Fibon.ConfigMonad.ConfigParameter(..)
   , Fibon.Benchmarks.FibonGroup(..)
   , Fibon.Benchmarks.FibonBenchmark(..)
+  , Fibon.Benchmarks.allBenchmarks
   , Fibon.InputSize.InputSize(..)
   , RunConfig(..)
   , TuneSetting(..)
