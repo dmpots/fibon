@@ -5,31 +5,33 @@ import Data.List
 import System.Directory
 import System.FilePath
 import System.IO
+import FibonFind
 
 main = defaultMainWithHooks simpleUserHooks {postConf = writeLocalConf, postClean = deleteLocalConf}
 
 writeLocalConf _ _ _ _ = do
-  findLocalConfigModules
+  findLocalConfigModules configDir
+  findLocalBenchmarks    benchmarkDir
 
 deleteLocalConf _ _ _ _ = do
-  safeDelete importsFileName
-  safeDelete modulesFileName
+  safeDelete (importsFileName configDir)
+  safeDelete (modulesFileName configDir)
 
 safeDelete :: FilePath -> IO ()
 safeDelete f = do
   e <- doesFileExist f
   when e (removeFile f)
 
-findLocalConfigModules :: IO ()
-findLocalConfigModules = do
-  fs <- getDirectoryContents configDir
+findLocalConfigModules :: FilePath -> IO ()
+findLocalConfigModules cDir = do
+  fs <- getDirectoryContents cDir
   putStr "\nLooking for local configuration modules... "
   let modNames = map dropExtension $ filter (".hs" `isSuffixOf`) fs
   let imports  = map importStmt $ modNames
   let modules  = map importAs   $ modNames
   putStrLn $ "found ("++ (show.length$ modNames)++")"
-  writeToFile importsFileName imports
-  writeToFile modulesFileName modules
+  writeToFile (importsFileName cDir) imports
+  writeToFile (modulesFileName cDir) modules
   where
   importStmt m = "import qualified "++m++" as " ++importAs m
   writeToFile fName contents = do
@@ -42,7 +44,9 @@ findLocalConfigModules = do
 importAs :: String -> String
 importAs modName = modName++"_Config"
 
-importsFileName, modulesFileName :: FilePath
+configDir, benchmarkDir :: FilePath
 configDir       = "config"
-importsFileName = configDir </> "LocalConfigImports.txt"
-modulesFileName = configDir </> "LocalConfigModules.txt"
+benchmarkDir    = "benchmarks"
+importsFileName, modulesFileName :: FilePath -> FilePath
+importsFileName baseDir = baseDir </> "LocalConfigImports.txt"
+modulesFileName baseDir = baseDir </> "LocalConfigModules.txt"
