@@ -1,0 +1,3 @@
+[submodule "benchmarks/Fibon/Benchmarks"]
+	path = benchmarks/Fibon/Benchmarks
+	url = dmp4866@orion.cs.rice.edu:repos/fibon-benchmarks

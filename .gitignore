@@ -117,3 +117,4 @@ run/
 config/
 log/
 _T
+benchmarks/Fibon/Benchmarks.hs

@@ -1,11 +1,12 @@
 module FibonFind(findLocalBenchmarks) where
 --module Main where
 
-import System.Directory
 import Control.Exception
+import Control.Monad (filterM)
+import Data.List
+import System.Directory
 import System.FilePath
 import System.IO
-import Data.List
 
 {-
 -- for standalone testing
@@ -49,16 +50,21 @@ bmGroups baseDir = do
   dirs <- try (getDirectoryContents baseDir) :: IO (Either IOError [FilePath])
   case dirs of
     Left  _  -> return [] 
-    Right ds -> return $ removeDotDirs ds 
+    Right ds -> removeBadEntries ds
 
 bmInstances :: FilePath -> [FilePath] -> IO [[String]]
 bmInstances baseDir groups = do
   let paths = map (baseDir</>) groups
   bms <- mapM getDirectoryContents paths
-  return (map removeDotDirs bms)
+  mapM removeBadEntries bms
 
-removeDotDirs :: [FilePath] -> [FilePath]
-removeDotDirs = filter (\d -> d /= "." && d /= "..")
+removeDotFiles :: [FilePath] -> [FilePath]
+removeDotFiles = filter (\d -> not ("." `isPrefixOf` d))
+
+removeBadEntries :: [FilePath] -> IO [FilePath]
+removeBadEntries dirs = do
+  noFiles <- filterM doesDirectoryExist dirs
+  return (removeDotFiles noFiles)
 
 moduleHeader :: String
 moduleHeader = join "\n" [
