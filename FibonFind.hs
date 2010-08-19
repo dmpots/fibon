@@ -50,20 +50,21 @@ bmGroups baseDir = do
   dirs <- try (getDirectoryContents baseDir) :: IO (Either IOError [FilePath])
   case dirs of
     Left  _  -> return [] 
-    Right ds -> removeBadEntries ds
+    Right ds -> removeBadEntries baseDir ds
 
 bmInstances :: FilePath -> [FilePath] -> IO [[String]]
 bmInstances baseDir groups = do
-  let paths = map (baseDir</>) groups
+  let paths = map (baseDir </>) groups
   bms <- mapM getDirectoryContents paths
-  mapM removeBadEntries bms
+  mapM (\(p, bm) -> removeBadEntries p bm) (zip paths bms)
 
 removeDotFiles :: [FilePath] -> [FilePath]
 removeDotFiles = filter (\d -> not ("." `isPrefixOf` d))
 
-removeBadEntries :: [FilePath] -> IO [FilePath]
-removeBadEntries dirs = do
-  noFiles <- filterM doesDirectoryExist dirs
+removeBadEntries :: FilePath -> [FilePath] -> IO [FilePath]
+removeBadEntries baseDir dirs = do
+  let paths = map (baseDir </>) dirs
+  noFiles <- filterM (\d -> doesDirectoryExist (baseDir </> d)) dirs
   return (removeDotFiles noFiles)
 
 moduleHeader :: String
