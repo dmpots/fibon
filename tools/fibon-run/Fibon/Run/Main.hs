@@ -6,7 +6,6 @@ import Control.Monad
 import Control.Exception
 import Data.Char
 import Data.List
-import Data.Maybe
 import qualified Data.Map as Map
 import Fibon.Benchmarks
 import Fibon.Run.Config.Default as DefaultConfig
