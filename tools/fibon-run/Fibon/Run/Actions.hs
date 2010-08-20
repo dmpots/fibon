@@ -152,7 +152,10 @@ runRun =  do
   io $ Log.info (show res)
   case res of
     Success timing -> return timing
-    Failure msg    -> throwError $ RunError (show msg)
+    Failure msg    -> throwError $ RunError (show $ concatMap simplify msg)
+  where
+  simplify (MissingOutput f) = "Missing output file: "++f
+  simplify (DiffError     _ )= "Output differs from expected"
 
 copyFiles :: (BenchmarkBundle -> FilePath)
           -> FibonRunMonad ()
