@@ -11,7 +11,7 @@ config = RunConfig {
   --, sizeList = [Test, Ref]
   --, tuneList = [Base, Peak]
   , sizeList = [Test, Ref]
-  , tuneList = [Base]
+  , tuneList = [Base, Peak]
   , iterations = 10
   , flagsBuilder = flags
   }
