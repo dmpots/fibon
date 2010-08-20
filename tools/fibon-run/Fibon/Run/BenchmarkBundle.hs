@@ -24,8 +24,6 @@ import Data.Char
 import Data.List
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
-import Fibon.FlagConfig
-import Fibon.InputSize
 import Fibon.Run.Config
 import System.FilePath
 import System.IO
@@ -107,7 +105,7 @@ pathToAllDataFiles = pathToDataFiles "all"
 
 pathToDataFiles :: FilePath -> FilePath -> BenchmarkBundle -> FilePath
 pathToDataFiles size subDir bb =
-  (pathToBench bb) </> "data" </> size </> subDir
+  (pathToBench bb) </> "Fibon" </> "data" </> size </> subDir
 
 pathToStdoutFile :: BenchmarkBundle -> FilePath
 pathToStdoutFile = pathToStdioFile "stdout"

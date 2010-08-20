@@ -86,14 +86,17 @@ data BuildData = BuildData {
 
 runAction :: Action -> FibonRunMonad ActionResult
 runAction Sanity = do
+  io $ Log.notice "  Checking..."
   sanityCheck
   return SanityComplete
 runAction Build = do
+  io $ Log.notice "  Building..."
   prepConfigure
   runConfigure
   r <- runBuild
   return $ BuildComplete r
 runAction Run = do
+  io $ Log.notice "  Running..."
   prepRun
   r <- runRun
   return $ RunComplete r

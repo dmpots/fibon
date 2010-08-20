@@ -1,5 +1,14 @@
-module Fibon.BenchmarkInstance where
+module Fibon.BenchmarkInstance(
+    BenchmarkInstance(..)
+  , OutputDestination(..)
+  , ValidationOption(..)
+  , OutputDescription
+  , Fibon.FlagConfig.FlagConfig(..)
+  , Fibon.InputSize.InputSize(..)
+)
+where
 import Fibon.FlagConfig
+import Fibon.InputSize
 
 data OutputDestination = 
     OutputFile String

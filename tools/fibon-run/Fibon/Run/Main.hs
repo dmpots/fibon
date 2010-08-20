@@ -29,7 +29,7 @@ main :: IO ()
 main = do
   currentDir <- getCurrentDirectory
   let workingDir = currentDir </> "run"
-      benchPath  = currentDir </> "benchmarks"
+      benchPath  = currentDir </> "benchmarks/Fibon/Benchmarks"
       logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
@@ -45,7 +45,7 @@ main = do
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
-  Log.notice $ "Running: "++ (bundleName bundle)++ " action="++(show action)
+  Log.notice $ "Benchmark: "++ (bundleName bundle)++ " action="++(show action)
   case action of
     Sanity -> run sanityCheckBundle  (const $ return ())
     Build  -> run buildBundle        (\(BuildData time _size) -> do
