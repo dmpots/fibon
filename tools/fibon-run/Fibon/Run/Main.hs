@@ -16,6 +16,7 @@ import Fibon.Run.Actions
 import Fibon.Run.BenchmarkBundle
 import qualified Fibon.Run.Log as Log
 import System.Directory
+import System.Exit
 import System.FilePath
 import System.Locale
 import Data.Time.Clock
@@ -28,6 +29,7 @@ import Text.Printf
 main :: IO ()
 main = do
   currentDir <- getCurrentDirectory
+  runConfig  <- selectConfig "foo" -- for now
   let workingDir = currentDir </> "run"
       benchPath  = currentDir </> "benchmarks/Fibon/Benchmarks"
       logPath    = currentDir </> "log"
@@ -40,8 +42,6 @@ main = do
   mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchPath uniq)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
-  where
-  runConfig  = selectConfig (configId DefaultConfig.config)
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
@@ -79,9 +79,15 @@ runAndLogErrors bundle act cont = do
    logError s = do Log.warn $ "Error running: "  ++ name
                    Log.warn $ "        =====> "  ++ s
 
-selectConfig :: ConfigId -> RunConfig
+selectConfig :: ConfigId -> IO RunConfig
 selectConfig configName =
-  fromJust $ Map.lookup configName availableConfigs
+  case Map.lookup configName availableConfigs of
+    Just c  -> do return c
+    Nothing -> do
+      Log.error $ "Unknown config: "       ++ configName
+      Log.error $ "Available configs:\n  " ++ configNames
+      exitFailure
+  where configNames = concat (intersperse "\n  " $ Map.keys availableConfigs)
 
 availableConfigs :: Map.Map ConfigId RunConfig
 availableConfigs = Map.fromList $ (configId def, def) : Local.configs 
