@@ -23,12 +23,12 @@ findLocalBenchmarks baseDir = do
   putStr $ "Looking for benchmarks in "++searchPath
   groups <- bmGroups searchPath
   bms    <- bmInstances searchPath groups
-  putStrLn $ "... found ("++ (show.length$ bms)++")"
   let allGroups    = sort            groups
       allBms       = (sort . concat) bms
       qualifiedBms = 
         concat $ zipWith (\g bs -> map ((,)g) (sort bs)) allGroups bms
       outFile      = searchPath ++ ".hs"
+  putStrLn $ "... found ("++ (show.length$ allBms)++")"
   putStrLn $ "writing benchmark manifest to "++outFile
   h <- openFile outFile WriteMode
   hPutStrLn h moduleHeader
