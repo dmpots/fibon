@@ -65,7 +65,7 @@ mkBundle rc bm wd bmsDir uniq size tune =
 
 bundleName :: BenchmarkBundle -> String
 bundleName bb = concat $ intersperse "-"
-  [(show $ benchmark bb), (show $ tuneSetting bb), (show $ inputSize bb)]
+  [(show $ benchmark bb), (show $ inputSize bb), (show $ tuneSetting bb)]
 
 pathToBench :: BenchmarkBundle -> FilePath
 pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
