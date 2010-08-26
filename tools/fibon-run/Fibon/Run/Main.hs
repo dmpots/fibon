@@ -41,6 +41,8 @@ main = do
   mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchPath uniq)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
+  Log.notice ("Logged output to " ++ logFile)
+  Log.notice ("Logged result to " ++ outFile)
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do

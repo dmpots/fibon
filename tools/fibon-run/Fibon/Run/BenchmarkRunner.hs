@@ -6,12 +6,14 @@ module Fibon.Run.BenchmarkRunner (
 )
 where
 
+import Control.Monad
 import Control.Monad.Trans
 import Criterion
 import Criterion.Config
 import Criterion.Environment
 import Criterion.Monad
 import Data.Monoid
+import Data.Maybe
 import Fibon.BenchmarkInstance
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
@@ -111,7 +113,10 @@ criterionRun clock bb = do
 checkResult :: BenchmarkBundle -> IO (Maybe [RunFailure])
 checkResult bb = do
   rs <- mapM (checkOutput bb) (output . benchDetails $ bb)
-  return $ sequence rs
+  let errs = filter isJust rs
+  case errs of
+    [] -> return $ Nothing
+    es -> return $ Just (catMaybes es)
 
 checkOutput :: BenchmarkBundle -> OutputDescription -> IO (Maybe RunFailure)
 checkOutput bb (o, Exists) = do
@@ -119,16 +124,24 @@ checkOutput bb (o, Exists) = do
   e <- doesFileExist f
   if e then return   Nothing
        else return $ Just $ MissingOutput ("File "++f++" does not exist")
-checkOutput bb (o, Diff d) = do
-  let f1 = (destinationToRealFile bb o)
-  let f2 = (destinationToRealFile bb (OutputFile d))
-  runDiff f1 f2
+checkOutput bb (o, Diff diffFile) = do
+  e1 <- checkOutput bb (o, Exists)
+  e2 <- checkOutput bb (d, Exists)
+  e3 <- runDiff f1 f2
+  return $ msum [e1, e2, e3]
+  where
+  d  = OutputFile diffFile
+  f1 = (destinationToRealFile bb o)
+  f2 = (destinationToRealFile bb d)
 
 runDiff :: FilePath -> FilePath -> IO (Maybe RunFailure)
 runDiff f1 f2 = do
+  Log.info $ "Diffing files: "++f1++" "++f2
   (r, o, _) <- readProcessWithExitCode (SysTools.diff) [f1, f2] ""
-  if r == ExitSuccess then return   Nothing
-                      else return $ Just $ DiffError o
+  if r == ExitSuccess then Log.info "No diff error" >>
+                           return   Nothing
+                      else Log.info "Diff error" >>
+                           (return $ Just $ DiffError o)
 
 destinationToRealFile :: BenchmarkBundle -> OutputDestination -> FilePath
 destinationToRealFile bb (OutputFile f) = (pathToExeRunDir bb)  </> f
