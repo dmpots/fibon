@@ -5,7 +5,7 @@ import Data.List
 import System.Directory
 import System.FilePath
 import System.IO
-import FibonFind
+import FindBench
 
 main = defaultMainWithHooks simpleUserHooks {postConf = writeLocalConf, postClean = deleteLocalConf}
 

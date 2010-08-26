@@ -1,4 +1,4 @@
-module FibonFind(findLocalBenchmarks) where
+module FindBench(findLocalBenchmarks) where
 --module Main where
 
 import Control.Exception
