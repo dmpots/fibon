@@ -11,8 +11,9 @@ module Fibon.Run.Actions (
 where
 
 import Data.List
+import Data.Maybe
 import Data.Time.Clock.POSIX
-import Fibon.FlagConfig
+import Fibon.BenchmarkInstance
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.BenchmarkRunner as Runner
 import Fibon.Run.Log as Log
@@ -112,11 +113,31 @@ sanityCheck = do
   dirContents <- io $ getDirectoryContents bmPath
   let cabalFile = find (".cabal" `isSuffixOf`) dirContents
   case cabalFile of
-    Just f  -> io $ Log.info ("Found cabal file: "++f)
+    Just f  -> do io $ Log.info ("Found cabal file: "++f)
+                  checkForExpectedOutFiles
     Nothing -> throwError cabalFileDoesNotExist
   where
   pathDoesNotExist bmP  = SanityError("Directory:\n"++bmP++" does not exist")
   cabalFileDoesNotExist = SanityError "Can not find cabal file"
+
+checkForExpectedOutFiles :: FibonRunMonad ()
+checkForExpectedOutFiles = do
+  bb <- ask
+  io $ Log.info "Checking for diff files"
+  let expectedOut = (output . benchDetails) bb
+      fs = diffFiles expectedOut
+  missingFiles <- io $ filterM (missing bb) fs
+  case missingFiles of
+    [] -> return ()
+    ms -> throwError $ SanityError("Missing expected output files: "++show ms)
+  where
+  missing bb f = do
+    Log.info $ "Checking for expected output file: " ++ f
+    e1 <- doesFileExist $ (pathToAllOutputFiles bb)  </> f
+    e2 <- doesFileExist $ (pathToSizeOutputFiles bb) </> f
+    return (not e1 && not e2)
+  diffFiles =
+    catMaybes . map (\o -> case o of (_, Diff f) -> Just f ; _ -> Nothing)
 
 prepConfigure :: FibonRunMonad ()
 prepConfigure = do
