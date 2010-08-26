@@ -1,16 +1,14 @@
-{-# LANGUAGE  TemplateHaskell, CPP #-}
+{-# LANGUAGE CPP #-}
 module Fibon.Run.Config.Local(
   configs
 )
 where
 
 import Fibon.Run.Config
-import Fibon.Run.Config.LocalConfigFinder as LocalConfigFinder
 
-#include "LocalConfigImports.txt"
+-- This includes the conifg module imports and defines the localConfigs list
+#include "LocalConfigs.txt"
 
 configs :: [(ConfigId, RunConfig)]
-configs = map (\x -> (configId x,x)) ms
-  where
-  ms = $(findLocalConfigModules "config")
+configs = map (\x -> (configId x,x)) localConfigs
 

@@ -29,7 +29,7 @@ findLocalBenchmarks baseDir = do
         concat $ zipWith (\g bs -> map ((,)g) (sort bs)) allGroups bms
       outFile      = searchPath ++ ".hs"
   putStrLn $ "... found ("++ (show.length$ allBms)++")"
-  putStrLn $ "writing benchmark manifest to "++outFile
+  putStrLn $ "  writing benchmark manifest to "++outFile
   h <- openFile outFile WriteMode
   hPutStrLn h moduleHeader
   hPutStrLn h $ moduleImports (join "." benchmarksModule) qualifiedBms
