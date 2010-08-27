@@ -65,7 +65,8 @@ removeBadEntries :: FilePath -> [FilePath] -> IO [FilePath]
 removeBadEntries baseDir dirs = do
   let paths = map (baseDir </>) dirs
   noFiles <- filterM (\d -> doesDirectoryExist (baseDir </> d)) dirs
-  return (removeDotFiles noFiles)
+  let noUnderscores = filter (\d -> not ("_" `isPrefixOf` d)) noFiles
+  return (removeDotFiles noUnderscores)
 
 moduleHeader :: String
 moduleHeader = join "\n" [
