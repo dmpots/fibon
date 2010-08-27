@@ -68,7 +68,7 @@ bundleName bb = concat $ intersperse "-"
   [(show $ benchmark bb), (show $ inputSize bb), (show $ tuneSetting bb)]
 
 pathToBench :: BenchmarkBundle -> FilePath
-pathToBench bb = (benchDir bb) </> ((localPath . benchDetails) bb)
+pathToBench bb = (benchDir bb) </> ((benchPath . benchmark) bb)
 
 pathToCabalWorkDir :: BenchmarkBundle -> FilePath
 pathToCabalWorkDir bb = (workDir bb) </> (unique bb) </> (bundleName bb)

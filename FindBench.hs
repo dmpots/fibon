@@ -43,6 +43,8 @@ findLocalBenchmarks baseDir = do
   hPutStrLn h $ benchGroupDecl qualifiedBms
   hPutStrLn h ""
   hPutStrLn h $ benchInstanceDecl qualifiedBms
+  hPutStrLn h ""
+  hPutStrLn h $ benchPathDecl qualifiedBms
   hClose h
 
 bmGroups :: FilePath -> IO [FilePath]
@@ -76,10 +78,12 @@ moduleHeader = join "\n" [
   "  , allBenchmarks",
   "  , benchGroup",
   "  , benchInstance",
+  "  , benchPath",
   ")",
   "where",
   "import Fibon.InputSize",
-  "import Fibon.BenchmarkInstance"
+  "import Fibon.BenchmarkInstance",
+  "import System.FilePath"
   ]
   where
   modName = join "." benchmarksModule 
@@ -133,6 +137,15 @@ benchInstanceDecl qBms =
   (join ("\n") $ map defn qBms)
   where
   defn (g,bm) = "benchInstance " ++ bm ++ " = " ++ (importAs g bm) ++ ".mkInstance"
+
+
+benchPathDecl :: [(String, String)] -> String
+benchPathDecl qBms =
+  "benchPath :: FibonBenchmark -> FilePath\n"++
+  (join ("\n") $ map defn qBms)
+  where
+  defn (g,bm) = "benchPath " ++ bm ++ " = " ++ s g ++ " </> " ++ s bm
+  s x = "\"" ++ x ++"\""
 
 join :: String -> [String] -> String
 join s ss = concat (intersperse s ss)

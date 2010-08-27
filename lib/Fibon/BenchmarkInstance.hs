@@ -27,7 +27,6 @@ data BenchmarkInstance = BenchmarkInstance {
       flagConfig     :: FlagConfig
     , stdinInput     :: Maybe FilePath
     , output         :: [OutputDescription]
-    , localPath      :: FilePath
     , exeName        :: String
   } deriving (Show)
 

@@ -30,7 +30,7 @@ main = do
   currentDir <- getCurrentDirectory
   runConfig  <- selectConfig "foo" -- for now
   let workingDir = currentDir </> "run"
-      benchPath  = currentDir </> "benchmarks/Fibon/Benchmarks"
+      benchRoot  = currentDir </> "benchmarks/Fibon/Benchmarks"
       logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
@@ -38,7 +38,7 @@ main = do
   Log.notice ("Starting Run at   " ++ startTime)
   Log.notice ("Logging output to " ++ logFile)
   Log.notice ("Logging result to " ++ outFile)
-  mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchPath uniq)
+  mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchRoot uniq)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
   Log.notice ("Logged output to " ++ logFile)
@@ -100,10 +100,10 @@ makeBundles :: RunConfig
             -> FilePath  -- ^ Benchmark base path
             -> String    -- ^ Unique Id
             -> [BenchmarkBundle]
-makeBundles rc workingDir benchPath uniq = map bundle bms
+makeBundles rc workingDir benchRoot uniq = map bundle bms
   where
   bundle (bm, size, tune) =
-    mkBundle rc bm workingDir benchPath uniq size tune
+    mkBundle rc bm workingDir benchRoot uniq size tune
   bms = sort
         [(bm, size, tune) |
                       size <- (sizeList rc),
