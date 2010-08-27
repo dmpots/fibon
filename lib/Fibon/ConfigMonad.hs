@@ -36,7 +36,7 @@ replace c f = do
 
 append :: ConfigParameter -> String -> ConfigMonad
 append c f = do
-  CM $ modify (Map.insertWith (flip (++)) c [f])
+  CM $ modify (Map.insertWith (flip (++)) c (words f))
 
 runConfig :: ConfigMonad -> FlagConfig
 runConfig c = toFlagConfig finalState
