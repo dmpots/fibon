@@ -114,7 +114,6 @@ template grpName bmName exName = unlines [
   "      }",
   "    , stdinInput     = Nothing",
   "    , output         = [(Stdout, Diff "++(show expectedOut)++")]",
-  "    , localPath      = "++(show localPath),
   "    , exeName        = "++(show exName),
   "  }",
   "flgCfg = flagConfig sharedConfig",
@@ -129,5 +128,4 @@ template grpName bmName exName = unlines [
   where
   modName = "Fibon.Benchmarks."++grpName++"."++bmName++".Fibon.Instance"
   expectedOut = exName ++ ".stdout.expected"
-  localPath   = grpName </> bmName
 
