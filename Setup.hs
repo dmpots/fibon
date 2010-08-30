@@ -1,11 +1,20 @@
 #!/usr/bin/env runhaskell
 import Distribution.Simple
+import Distribution.PackageDescription
 import Control.Monad
 import System.Directory
 import FindBench
 import FindConfig
 
-main = defaultMainWithHooks simpleUserHooks {postConf = writeLocalConf, postClean = deleteLocalConf}
+main = defaultMainWithHooks simpleUserHooks {
+          preConf   = createConfDir
+        , postConf  = writeLocalConf
+        , postClean = deleteLocalConf}
+
+createConfDir _ _ = do
+  e <- doesDirectoryExist configDir
+  unless e (createDirectory configDir)
+  return emptyHookedBuildInfo
 
 writeLocalConf _ _ _ _ = do
   findLocalConfigs    configDir
