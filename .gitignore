@@ -114,7 +114,6 @@ TAGS/
 #papi-ghc
 dist/
 run/
-config/
 log/
 _T
 benchmarks/Fibon/Benchmarks.hs
