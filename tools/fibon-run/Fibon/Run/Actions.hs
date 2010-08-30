@@ -31,7 +31,7 @@ data Action =
     Sanity
   | Build
   | Run
-  deriving (Show)
+  deriving (Read, Show, Eq, Ord, Enum)
 
 type ActionRunner a = (BenchmarkBundle -> IO (Either FibonError a))
 

@@ -7,6 +7,7 @@ where
 
 import Data.Maybe
 import Data.List
+import Fibon.Run.Actions
 import Fibon.Run.Config
 import Fibon.Run.Manifest
 import System.Console.GetOpt
@@ -19,6 +20,7 @@ data Opt = Opt {
     , optTuneSetting :: Maybe TuneSetting
     , optSizeSetting :: Maybe InputSize
     , optIterations  :: Maybe Int
+    , optAction      :: Action
   }
 
 defaultOpts :: Opt
@@ -29,6 +31,7 @@ defaultOpts = Opt {
     , optTuneSetting = Nothing
     , optSizeSetting = Nothing
     , optIterations  = Nothing
+    , optAction      = Run
   }
 
 
@@ -108,8 +111,16 @@ options = [
     Option ['m'] ["manifest"]
       (NoArg (\(e, opt) -> (e, opt {optHelpMsg = Just manifest})))
       "print manifest of configs and benchmarks"
+    ,
+    Option ['a'] ["action"]
+      (ReqArg (\a (e, opt) ->
+        let act  = mbParse    a
+            errs = mbAddError e act ("Invalid action setting: "++a)
+        in
+        (errs, opt {optAction = fromMaybe (optAction opt) act})) "Action"
+      )
+      "override default action"
   ]
-  where
 
 usage :: String
 usage = usageInfo header options

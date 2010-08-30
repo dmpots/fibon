@@ -34,13 +34,14 @@ main = do
       workingDir = currentDir </> "run"
       benchRoot  = currentDir </> "benchmarks/Fibon/Benchmarks"
       logPath    = currentDir </> "log"
+      action     = optAction opts
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
   startTime <- timeStamp
   Log.notice ("Starting Run at   " ++ startTime)
   Log.notice ("Logging output to " ++ logFile)
   Log.notice ("Logging result to " ++ outFile)
-  mapM_ (runAndReport Run) (makeBundles runConfig workingDir benchRoot uniq)
+  mapM_ (runAndReport action) (makeBundles runConfig workingDir benchRoot uniq)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
   Log.notice ("Logged output to " ++ logFile)
@@ -62,7 +63,7 @@ runAndReport action bundle = do
   case action of
     Sanity -> run sanityCheckBundle  (const $ return ())
     Build  -> run buildBundle        (\(BuildData time _size) -> do
-                Log.notice (printf "Build completed in %0.2f seconds" time)
+                Log.info (printf "Build completed in %0.2f seconds" time)
               )
     Run    -> run runBundle          (\fr@(FibonResult _n _br _rr) -> do
                 -- Log.notice (show rr)
