@@ -9,13 +9,11 @@ import Data.List
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
-import qualified Data.Map as Map
 import Fibon.Benchmarks
 import Fibon.Run.Actions
 import Fibon.Run.CommandLine
 import Fibon.Run.Config
-import Fibon.Run.Config.Default as Default
-import Fibon.Run.Config.Local as Local
+import Fibon.Run.Manifest
 import Fibon.Run.BenchmarkBundle
 import qualified Fibon.Run.Log as Log
 import System.Directory
@@ -96,18 +94,13 @@ runAndLogErrors bundle act cont = do
 
 selectConfig :: ConfigId -> IO RunConfig
 selectConfig configName =
-  case Map.lookup configName availableConfigs of
+  case find ((== configName) . configId) configManifest of
     Just c  -> do return c
     Nothing -> do
       Log.error $ "Unknown config: "       ++ configName
       Log.error $ "Available configs:\n  " ++ configNames
       exitFailure
-  where configNames = concat (intersperse "\n  " $ Map.keys availableConfigs)
-
-availableConfigs :: Map.Map ConfigId RunConfig
-availableConfigs = Map.fromList $ (configId def, def) : Local.configs 
-  where
-  def = Default.config
+  where configNames = concat (intersperse "\n  " $ map configId configManifest)
 
 makeBundles :: RunConfig
             -> FilePath  -- ^ Working directory

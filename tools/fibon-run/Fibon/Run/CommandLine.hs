@@ -6,7 +6,9 @@ module Fibon.Run.CommandLine (
 where
 
 import Data.Maybe
+import Data.List
 import Fibon.Run.Config
+import Fibon.Run.Manifest
 import System.Console.GetOpt
 
 type UsageError = String
@@ -102,6 +104,10 @@ options = [
         (errs, opt {optIterations = iter})) "Int"
       )
       "override number of iterations"
+    ,
+    Option ['m'] ["manifest"]
+      (NoArg (\(e, opt) -> (e, opt {optHelpMsg = Just manifest})))
+      "print manifest of configs and benchmarks"
   ]
   where
 
@@ -122,3 +128,15 @@ mbParse s =
   case reads s of
     [(a, "")] -> Just a
     _         -> Nothing
+
+manifest :: String
+manifest =
+  "Config Ids:\n  " ++ configs ++ "\n" ++
+  "Benchmarks:\n  " ++ bms     ++ "\n" ++
+  "Groups:\n  "     ++ grps
+  where
+    configs  = format configId configManifest
+    bms      = format show     benchmarkManifest
+    grps     = format show     groupManifest
+    format f = concat . intersperse "\n  " . map f
+
