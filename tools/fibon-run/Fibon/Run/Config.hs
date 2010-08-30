@@ -36,7 +36,7 @@ type FlagBuilder = TuneSelection -> BenchmarkConfigSelection -> ConfigMonad
 data TuneSetting = 
     Base 
   | Peak 
-  deriving(Eq, Show, Ord, Enum)
+  deriving(Eq, Read, Show, Ord, Enum)
 
 data TuneSelection =
     ConfigTune TuneSetting

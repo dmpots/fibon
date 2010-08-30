@@ -6,5 +6,5 @@ where
 data InputSize =
     Test
   | Ref
-  deriving(Eq, Show, Ord, Enum)
+  deriving(Eq, Read, Show, Ord, Enum)
 

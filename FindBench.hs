@@ -101,21 +101,21 @@ importAs :: String -> String -> String
 importAs _grp modu = modu ++ "_bm"
 
 groupName :: String -> String
-groupName g = g ++ "Group"
+groupName g = g
 
 benchDataDecl :: [String] -> String
 benchDataDecl []  = ""
 benchDataDecl bms =
   "data FibonBenchmark =\n    " ++
   (join ("\n  | ") bms) ++
-  "\n    deriving(Show, Eq, Ord, Enum)"
+  "\n    deriving(Read, Show, Eq, Ord, Enum)"
 
 groupDataDecl :: [String] -> String
 groupDataDecl []   = ""
 groupDataDecl grps = 
   "data FibonGroup =\n    " ++
   (join ("\n  | ") (map groupName grps)) ++
-  "\n    deriving(Show, Eq, Ord, Enum)"
+  "\n    deriving(Read, Show, Eq, Ord, Enum)"
 
 allBenchmarksDecl :: [String] -> String
 allBenchmarksDecl bms =

@@ -6,30 +6,34 @@ import Control.Monad
 import Control.Exception
 import Data.Char
 import Data.List
+import Data.Time.Clock
+import Data.Time.Format
+import Data.Time.LocalTime
 import qualified Data.Map as Map
 import Fibon.Benchmarks
-import Fibon.Run.Config.Default as DefaultConfig
-import Fibon.Run.Config
-import Fibon.Run.Config.Local as Local
 import Fibon.Run.Actions
+import Fibon.Run.CommandLine
+import Fibon.Run.Config
+import Fibon.Run.Config.Default as Default
+import Fibon.Run.Config.Local as Local
 import Fibon.Run.BenchmarkBundle
 import qualified Fibon.Run.Log as Log
 import System.Directory
 import System.Exit
+import System.Environment
 import System.FilePath
 import System.Locale
-import Data.Time.Clock
-import Data.Time.Format
-import Data.Time.LocalTime
 --import Text.Show.Pretty
 import Text.Printf
 
 
 main :: IO ()
 main = do
+  opts <- parseArgsOrDie
   currentDir <- getCurrentDirectory
-  runConfig  <- selectConfig "foo" -- for now
-  let workingDir = currentDir </> "run"
+  initConfig  <- selectConfig (optConfig opts)
+  let runConfig  = mergeConfigOpts initConfig opts
+      workingDir = currentDir </> "run"
       benchRoot  = currentDir </> "benchmarks/Fibon/Benchmarks"
       logPath    = currentDir </> "log"
   uniq       <- chooseUniqueName workingDir (configId runConfig)
@@ -43,6 +47,16 @@ main = do
   Log.notice ("Finished Run at   " ++ endTime)
   Log.notice ("Logged output to " ++ logFile)
   Log.notice ("Logged result to " ++ outFile)
+
+parseArgsOrDie :: IO Opt
+parseArgsOrDie = do
+  args <- getArgs
+  case parseCommandLine args of
+    Left  msg  -> putStrLn msg >> exitFailure
+    Right opts -> do
+      case optHelpMsg opts of
+        Just msg -> putStrLn msg >> exitSuccess
+        Nothing  -> return opts
 
 runAndReport :: Action -> BenchmarkBundle -> IO ()
 runAndReport action bundle = do
@@ -93,7 +107,7 @@ selectConfig configName =
 availableConfigs :: Map.Map ConfigId RunConfig
 availableConfigs = Map.fromList $ (configId def, def) : Local.configs 
   where
-  def = DefaultConfig.config
+  def = Default.config
 
 makeBundles :: RunConfig
             -> FilePath  -- ^ Working directory
@@ -134,6 +148,14 @@ timeStamp = do
   tz <- getCurrentTimeZone
   t  <- getCurrentTime
   return $ formatTime defaultTimeLocale "%F %T" (utcToLocalTime tz t)
+
+mergeConfigOpts :: RunConfig -> Opt -> RunConfig
+mergeConfigOpts rc opt = rc {
+      tuneList   = maybe (tuneList rc) (:[]) (optTuneSetting opt)
+    , sizeList   = maybe (sizeList rc) (:[]) (optSizeSetting opt)
+    , runList    = maybe (runList  rc)   id  (optBenchmarks  opt)
+    , iterations = maybe (iterations rc) id  (optIterations  opt)
+  }
 
 {-
 dumpConfig :: RunConfig -> IO ()
