@@ -135,7 +135,7 @@ chooseUniqueName workingDir configName = do
     _  -> return $ (format . (+1) . read . last . sort) numbered
   where
   format :: Int -> String
-  format d = printf "%04d.%s" d configName
+  format d = printf "%03d.%s" d configName
 
 timeStamp :: IO String
 timeStamp = do
