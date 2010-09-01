@@ -142,12 +142,16 @@ mbParse s =
 
 manifest :: String
 manifest =
-  "Config Ids:\n  " ++ configs ++ "\n" ++
-  "Benchmarks:\n  " ++ bms     ++ "\n" ++
-  "Groups:\n  "     ++ grps
+  "Configurations(" ++ nConfigs ++ ")\n  " ++ configs ++ "\n" ++
+  "Benchmarks("     ++ nBenchs  ++ ")\n  " ++ bms     ++ "\n" ++
+  "Groups("         ++ nGroups  ++ ")\n  " ++ grps
   where
+    nConfigs = formatN configManifest
+    nBenchs  = formatN benchmarkManifest
+    nGroups  = formatN groupManifest
     configs  = format configId configManifest
     bms      = format show     benchmarkManifest
     grps     = format show     groupManifest
     format f = concat . intersperse "\n  " . map f
+    formatN  = show . length
 
