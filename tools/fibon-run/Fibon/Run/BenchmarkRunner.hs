@@ -15,45 +15,34 @@ import Fibon.BenchmarkInstance
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
 import qualified Fibon.Run.SysTools as SysTools
-import Statistics.Resampling
-import Statistics.Resampling.Bootstrap
 import Statistics.Sample
 import System.Directory
 import System.Exit
 import System.FilePath
 import System.IO
 import System.Process
-import System.Random.MWC
 import Text.Printf
 
 data RunResult =
     Success {summary :: RunSummary, details :: [RunDetail]}
   | Failure [RunFailure]
-  deriving (Show)
+  deriving (Read, Show)
 
 data RunDetail = RunDetail {runTime :: Double, runStats :: ExtraStats}
-  deriving (Show)
+  deriving (Read, Show)
 
 data RunFailure =
     MissingOutput FilePath
   | DiffError     String
   | Timeout
-  deriving (Show)
+  deriving (Read, Show)
 
-data TimeMeasurement = TimeMeasurement {
+data RunSummary = RunSummary {
       meanTime     :: Double
-    , meanTimeLB   :: Double
-    , meanTimeUB   :: Double
-    , meanStddev   :: Double
-    , meanStddevUB :: Double
-    , meanStddevLB :: Double
-    , confidence   :: Double
+    , stdDevTime   :: Double
+    , statsSummary :: ExtraStats
   }
-  deriving (Show)
-
-data RunSummary =
-  RunSummary {timeSummary :: TimeMeasurement, statsSummary :: ExtraStats}
-  deriving (Show)
+  deriving (Read, Show)
 
 type ExtraStats = [(String, String)]
 
@@ -69,6 +58,8 @@ run bb = do
   Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
   runDirect bb
 
+{-
+-- Move this to analysis time
 analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunSummary
 analyze times ghcStats numResamples ci = do
   let ests = [mean, stdDev]
@@ -89,6 +80,7 @@ analyze times ghcStats numResamples ci = do
               , statsSummary = ghcStats
   }
   return runData
+-}
 
 checkResult :: BenchmarkBundle -> IO (Maybe [RunFailure])
 checkResult bb = do
@@ -138,9 +130,7 @@ runDirect bb = do
   mbDetails <- go count []
   case mbDetails of
     Left e   -> return $ Failure e
-    Right ds -> do
-      summ <- summarize ds
-      return $ Success summ ds
+    Right ds -> return $ Success (summarize ds) ds
   where
   go 0 ds = return $ Right (reverse ds)
   go n ds = do
@@ -151,14 +141,15 @@ runDirect bb = do
   runB    = runBenchmarkWithTimeout (6 * (10^(6::Int)))
   count   = (iters bb)
 
-summarize :: [RunDetail] -> IO RunSummary
-summarize ds = analyze times stats numResamples ci
+summarize :: [RunDetail] -> RunSummary
+summarize ds = RunSummary {
+      meanTime     = mean times
+    , stdDevTime   = stdDev times
+    , statsSummary = stats
+  }
   where
-    numResamples = 10
-    ci    = 0.95
     times = (Vector.fromList $ map runTime ds)
     stats = concatMap runStats ds
-
 
 type TimeoutLength = Int
 runBenchmarkWithTimeout :: TimeoutLength -> BenchmarkBundle -> RunStepResult
