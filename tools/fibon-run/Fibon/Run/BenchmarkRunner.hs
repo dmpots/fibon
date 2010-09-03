@@ -1,11 +1,13 @@
 module Fibon.Run.BenchmarkRunner (
-    RunData(..)
+    RunSummary(..)
   , RunResult(..)
   , RunFailure(..)
   , Fibon.Run.BenchmarkRunner.run
 )
 where
 
+import Control.Concurrent
+import Control.Concurrent.MVar
 import Control.Monad
 import Control.Monad.Trans
 import Criterion
@@ -13,7 +15,9 @@ import Criterion.Config
 import Criterion.Environment
 import Criterion.Monad
 import Data.Monoid
+import Data.Time.Clock
 import Data.Maybe
+import qualified Data.Vector.Unboxed as Vector
 import Fibon.BenchmarkInstance
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
@@ -30,13 +34,17 @@ import System.Random.MWC
 import Text.Printf
 
 data RunResult =
-    Success RunData
+    Success {summary :: RunSummary, details :: [RunDetail]}
   | Failure [RunFailure]
+  deriving (Show)
+
+data RunDetail = RunDetail {runTime :: Double, runStats :: ExtraStats}
   deriving (Show)
 
 data RunFailure =
     MissingOutput FilePath
   | DiffError     String
+  | Timeout
   deriving (Show)
 
 data TimeMeasurement = TimeMeasurement {
@@ -50,8 +58,8 @@ data TimeMeasurement = TimeMeasurement {
   }
   deriving (Show)
 
-data RunData =
-  RunData {runTime :: TimeMeasurement, extraStats :: ExtraStats}
+data RunSummary =
+  RunSummary {timeSummary :: TimeMeasurement, statsSummary :: ExtraStats}
   deriving (Show)
 
 type ExtraStats = [(String, String)]
@@ -66,10 +74,8 @@ run bb = do
   Log.info $ "   PWD: " ++ pwd
   Log.info $ "   CMD: " ++ cmd
   Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
-  runCriterion bb
-
---runTimeout :: BenchmarkBundle -> IO RunResult
---runTimeout bb = do
+  --runCriterion bb
+  runDirect bb
 
 runCriterion :: BenchmarkBundle -> IO RunResult
 runCriterion bb =
@@ -94,17 +100,20 @@ criterionRun clock bb = do
   numResamples <- getConfigItem $ fromLJ cfgResamples
   ci           <- getConfigItem $ fromLJ cfgConfInterval
   case failure of
-    Nothing  -> liftIO $ analyze times ghcStats numResamples ci
+    Nothing  -> do
+      summ <- liftIO $ analyze times ghcStats numResamples ci
+      return $ Success {summary = summ, details = []}
+      
     Just err -> return $ Failure err
 
-analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunResult
+analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunSummary
 analyze times ghcStats numResamples ci = do
   let ests = [mean, stdDev]
   res   <- withSystemRandom $ \gen ->
             resample gen ests numResamples times :: IO [Resample]
   let [em,es] = bootstrapBCA ci times ests res
-  let runData = RunData {
-                runTime =
+  let runData = RunSummary {
+                timeSummary =
                   TimeMeasurement {
                       meanTime     = estPoint em
                     , meanTimeLB   = estLowerBound em
@@ -114,9 +123,9 @@ analyze times ghcStats numResamples ci = do
                     , meanStddevLB = estUpperBound es
                     , confidence   = ci
                   }
-              , extraStats = ghcStats
+              , statsSummary = ghcStats
   }
-  return $ Success runData
+  return runData
 
 checkResult :: BenchmarkBundle -> IO (Maybe [RunFailure])
 checkResult bb = do
@@ -167,14 +176,78 @@ runBenchmarkExe bb = do
   mapM_ closeStdIO [std_in  p, std_out p, std_err p]
   return ()
 
+
+type RunStepResult = IO (Either [RunFailure] RunDetail)
+
+runDirect :: BenchmarkBundle -> IO RunResult
+runDirect bb = do
+  details <- go count []
+  case details of
+    Left e   -> return $ Failure e
+    Right ds -> do
+      summ <- summarize ds
+      return $ Success summ ds
+  where 
+  go 0 ds = return $ Right (reverse ds)
+  go n ds = do
+    res <- runB bb
+    case res of
+      Right d -> go (n-1) (d:ds)
+      Left e  -> return $ Left e
+  runB    = runBenchmarkWithTimeout (6 * (10^6))
+  count   = (iters bb)
+
+summarize :: [RunDetail] -> IO RunSummary
+summarize ds = analyze times stats numResamples ci
+  where
+    numResamples = 10
+    ci    = 0.95
+    times = (Vector.fromList $ map runTime ds)
+    stats = concatMap runStats ds
+
+
+type TimeoutLength = Int
+runBenchmarkWithTimeout :: TimeoutLength -> BenchmarkBundle -> RunStepResult
+runBenchmarkWithTimeout us bb = do
+  resMVar <- newEmptyMVar
+  pidMVar <- newEmptyMVar
+  tid1 <- forkIO $ (putMVar resMVar . Just) =<< timeBenchmarkExe bb (Just pidMVar)
+  _    <- forkIO $ threadDelay us >> putMVar resMVar Nothing
+  res <- takeMVar resMVar
+  case res of
+    Nothing -> do
+      Log.info $ "benchmark timed out after "++(show us)++" us"
+      -- try to kill the subprocess
+      pid <- tryTakeMVar pidMVar
+      maybe pass terminateProcess pid
+      -- kill the haskell thread
+      killThread tid1
+      return $ Left [Timeout]
+    Just runDetail -> do
+       maybe (Right runDetail) Left `liftM` checkResult bb
+
+runBenchmarkWithoutTimeout :: BenchmarkBundle -> RunStepResult
+runBenchmarkWithoutTimeout bb = do
+  runDetail <- timeBenchmarkExe bb Nothing
+  maybe (Right runDetail) Left `liftM` checkResult bb
+      
+timeBenchmarkExe :: BenchmarkBundle            -- benchmark to run
+                 -> Maybe (MVar ProcessHandle) -- in case we need to kill it
+                 -> IO RunDetail
+timeBenchmarkExe bb pidMVar = do
+  p     <- bundleProcessSpec bb
+  start <- getCurrentTime
+  (_, _, _, pid) <- createProcess p
+  maybe pass (flip putMVar pid) pidMVar
+  _  <- waitForProcess pid
+  end   <- getCurrentTime
+  mapM_ closeStdIO [std_in  p, std_out p, std_err p]
+  stats <- readExtraStats bb
+  return $ RunDetail (realToFrac (diffUTCTime end start)) stats
+
 closeStdIO :: StdStream -> IO ()
 closeStdIO (UseHandle h) = hClose h
 closeStdIO _             = return ()
 
-{- Placeholder for pre and post actions to read extra stats
-preAction :: IO ()
-preAction = return ()
-
-postAction :: IO ()
-postAction = return ()
--}
+pass :: IO ()
+pass = return()

@@ -38,13 +38,13 @@ type ActionRunner a = (BenchmarkBundle -> IO (Either FibonError a))
 data ActionResult =
     SanityComplete
   | BuildComplete BuildData
-  | RunComplete   RunData
+  | RunComplete   RunSummary
   deriving(Show)
 
 data FibonResult = FibonResult {
       benchName   :: String
     , buildData   :: BuildData
-    , runData     :: RunData
+    , runData     :: RunSummary
   } deriving(Show)
 
 data FibonError =
@@ -166,18 +166,19 @@ prepRun = do
     , pathToAllOutputFiles
     ]
 
-runRun :: FibonRunMonad RunData
+runRun :: FibonRunMonad RunSummary
 runRun =  do
   bb <- ask
   res <- io $ Runner.run bb
   io $ Log.info (show res)
   case res of
-    Success timing -> return timing
-    Failure msg    -> throwError $ RunError (summarize msg)
+    Success timing _ -> return timing
+    Failure msg      -> throwError $ RunError (summarize msg)
   where
   summarize = concat . intersperse "\n" . map  simplify
   simplify (MissingOutput f) = "Missing output file: "++f
   simplify (DiffError     _ )= "Output differs from expected."
+  simplify (Timeout         )= "Timeout"
 
 copyFiles :: (BenchmarkBundle -> FilePath)
           -> FibonRunMonad ()

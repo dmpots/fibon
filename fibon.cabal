@@ -28,7 +28,7 @@ Cabal-version:       >=1.2
 
 Executable fibon-run
   main-is:          Fibon/Run/Main.hs
-  ghc-options: -Wall
+  ghc-options: -Wall -threaded
   include-dirs: config
   hs-source-dirs: tools/fibon-run
                   lib
