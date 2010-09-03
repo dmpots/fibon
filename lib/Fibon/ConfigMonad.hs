@@ -27,7 +27,7 @@ data ConfigParameter =
 newtype GenConfigMonad a = CM {configState :: (State ConfigState a)}
   deriving (Monad)
 data ConfigState = ConfigState {flagS :: ConfigMap, timeoutS :: Timeout}
-data Configuration = Configuration {flags :: FlagConfig, timeout :: Timeout}
+data Configuration = Configuration {flags :: FlagConfig, limit :: Timeout}
 type ConfigMap   = Map.Map ConfigParameter [String]
 type ConfigMonad = GenConfigMonad ()
 
@@ -62,7 +62,7 @@ toConfig state = Configuration {
         , runFlags       = Map.findWithDefault [] RunFlags configMap
       }
     ,
-    timeout   = (timeoutS state)
+    limit = (timeoutS state)
   }
   where
     configMap = flagS state

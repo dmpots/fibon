@@ -138,7 +138,8 @@ runDirect bb = do
     case res of
       Right d -> go (n-1) (d:ds)
       Left e  -> return $ Left e
-  runB    = runBenchmarkWithTimeout (6 * (10^(6::Int)))
+  runB    = maybe runBenchmarkWithoutTimeout runBenchmarkWithTimeout limit
+  limit   = timeout bb
   count   = (iters bb)
 
 summarize :: [RunDetail] -> RunSummary

@@ -8,9 +8,9 @@ data Timeout =
     Infinity
   | Limit {hours :: Int, mins :: Int, secs :: Int}
 
-timeoutToMicroSeconds :: Timeout -> Int
-timeoutToMicroSeconds Infinity      = error "Can not make the infinite finte"
-timeoutToMicroSeconds (Limit h m s) =
+timeoutToMicroSeconds :: Timeout -> Maybe Int
+timeoutToMicroSeconds Infinity      = Nothing
+timeoutToMicroSeconds (Limit h m s) = Just $
   (hoursToMicroSeconds h) + (minsToMicroSeconds m) + (secsToMicroSeconds s)
   where
     hoursToMicroSeconds = (* (36 * 10 ^ (8::Int)))

@@ -24,6 +24,7 @@ import Data.Char
 import Data.List
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
+import Fibon.Timeout
 import Fibon.Run.Config
 import System.FilePath
 import System.IO
@@ -40,6 +41,7 @@ data BenchmarkBundle = BenchmarkBundle {
     , inputSize     :: InputSize
     , fullFlags     :: FlagConfig
     , benchDetails  :: BenchmarkInstance
+    , timeout       :: Maybe Int
   } deriving (Show)
 
 mkBundle :: RunConfig
@@ -61,8 +63,10 @@ mkBundle rc bm wd bmsDir uniq size tune =
     , inputSize     = size
     , fullFlags     = flags configuration
     , benchDetails  = benchInstance bm size
+    , timeout       = timeoutToMicroSeconds (limit configuration)
   }
-  where configuration = mkConfig rc bm size tune
+  where
+    configuration = mkConfig rc bm size tune
 
 bundleName :: BenchmarkBundle -> String
 bundleName bb = concat $ intersperse "-"
