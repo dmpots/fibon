@@ -57,7 +57,22 @@ data RunData =
 type ExtraStats = [(String, String)]
 
 run :: BenchmarkBundle -> IO RunResult
-run bb =
+run bb = do
+  let bmk = (bundleName bb)
+      pwd = (pathToExeBuildDir bb)
+      cmd = (prettyRunCommand bb)
+  Log.info $ "Running Benchmark "
+  Log.info $ "   BMK: " ++ bmk
+  Log.info $ "   PWD: " ++ pwd
+  Log.info $ "   CMD: " ++ cmd
+  Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
+  runCriterion bb
+
+--runTimeout :: BenchmarkBundle -> IO RunResult
+--runTimeout bb = do
+
+runCriterion :: BenchmarkBundle -> IO RunResult
+runCriterion bb =
   let config = defaultConfig {
         cfgSamples   = Last $ Just (iters bb)
       , cfgVerbosity = Last $ Just Quiet
@@ -73,42 +88,35 @@ run bb =
 
 criterionRun :: Environment -> BenchmarkBundle -> Criterion RunResult
 criterionRun clock bb = do
-  let bmk = (bundleName bb)
-      pwd = (pathToExeBuildDir bb)
-      cmd = (prettyRunCommand bb)
-  liftIO . Log.info $ "Running Benchmark "
-  liftIO . Log.info $ "   BMK: " ++ bmk
-  liftIO . Log.info $ "   PWD: " ++ pwd
-  liftIO . Log.info $ "   CMD: " ++ cmd
-  liftIO . Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
-  --times    <- runBenchmark clock preAction bb postAction
   times    <- runBenchmark clock (runBenchmarkExe bb)
   failure  <- liftIO $ checkResult bb
   ghcStats <- liftIO $ readExtraStats bb
   numResamples <- getConfigItem $ fromLJ cfgResamples
-  let ests = [mean, stdDev]
+  ci           <- getConfigItem $ fromLJ cfgConfInterval
   case failure of
-    Nothing -> do
-      res   <- liftIO . withSystemRandom $ \gen ->
-               resample gen ests numResamples times :: IO [Resample]
-      ci    <- getConfigItem $ fromLJ cfgConfInterval
-      let [em,es] = bootstrapBCA ci times ests res
-      let runData = RunData {
-                    runTime =
-                      TimeMeasurement {
-                          meanTime     = estPoint em
-                        , meanTimeLB   = estLowerBound em
-                        , meanTimeUB   = estUpperBound em
-                        , meanStddev   = estPoint es
-                        , meanStddevUB = estLowerBound es
-                        , meanStddevLB = estUpperBound es
-                        , confidence   = ci
-                      }
-                  , extraStats = ghcStats
-      }
-      return $ Success runData
-    Just err ->
-      return $ Failure err
+    Nothing  -> liftIO $ analyze times ghcStats numResamples ci
+    Just err -> return $ Failure err
+
+analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunResult
+analyze times ghcStats numResamples ci = do
+  let ests = [mean, stdDev]
+  res   <- withSystemRandom $ \gen ->
+            resample gen ests numResamples times :: IO [Resample]
+  let [em,es] = bootstrapBCA ci times ests res
+  let runData = RunData {
+                runTime =
+                  TimeMeasurement {
+                      meanTime     = estPoint em
+                    , meanTimeLB   = estLowerBound em
+                    , meanTimeUB   = estUpperBound em
+                    , meanStddev   = estPoint es
+                    , meanStddevUB = estLowerBound es
+                    , meanStddevLB = estUpperBound es
+                    , confidence   = ci
+                  }
+              , extraStats = ghcStats
+  }
+  return $ Success runData
 
 checkResult :: BenchmarkBundle -> IO (Maybe [RunFailure])
 checkResult bb = do
