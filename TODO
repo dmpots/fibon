@@ -1,0 +1,3 @@
+* Make it work when benchmarks submodule has not been checked out
+* Make it work with GHC-head
+* Add shootout benchmarks
