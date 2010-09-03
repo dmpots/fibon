@@ -7,14 +7,7 @@ module Fibon.Run.BenchmarkRunner (
 where
 
 import Control.Concurrent
-import Control.Concurrent.MVar
 import Control.Monad
-import Control.Monad.Trans
-import Criterion
-import Criterion.Config
-import Criterion.Environment
-import Criterion.Monad
-import Data.Monoid
 import Data.Time.Clock
 import Data.Maybe
 import qualified Data.Vector.Unboxed as Vector
@@ -74,37 +67,7 @@ run bb = do
   Log.info $ "   PWD: " ++ pwd
   Log.info $ "   CMD: " ++ cmd
   Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
-  --runCriterion bb
   runDirect bb
-
-runCriterion :: BenchmarkBundle -> IO RunResult
-runCriterion bb =
-  let config = defaultConfig {
-        cfgSamples   = Last $ Just (iters bb)
-      , cfgVerbosity = Last $ Just Quiet
-    }
-  in
-  withConfig config $ do
-    liftIO $ Log.info $ "Estimating clock accuracy"
-    -- using a fake environment during development
-    -- env      <- measureEnvironment
-    let clock = Environment 8.87908709523226e-6 8.753194443641173e-8
-    liftIO $ Log.info $ (show clock)
-    criterionRun clock bb
-
-criterionRun :: Environment -> BenchmarkBundle -> Criterion RunResult
-criterionRun clock bb = do
-  times    <- runBenchmark clock (runBenchmarkExe bb)
-  failure  <- liftIO $ checkResult bb
-  ghcStats <- liftIO $ readExtraStats bb
-  numResamples <- getConfigItem $ fromLJ cfgResamples
-  ci           <- getConfigItem $ fromLJ cfgConfInterval
-  case failure of
-    Nothing  -> do
-      summ <- liftIO $ analyze times ghcStats numResamples ci
-      return $ Success {summary = summ, details = []}
-      
-    Just err -> return $ Failure err
 
 analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunSummary
 analyze times ghcStats numResamples ci = do
@@ -168,33 +131,24 @@ destinationToRealFile bb  Stderr        = (pathToStderrFile bb)
 readExtraStats :: BenchmarkBundle -> IO ExtraStats
 readExtraStats bb = return []
 
-runBenchmarkExe :: BenchmarkBundle -> IO ()
-runBenchmarkExe bb = do
-  p  <- bundleProcessSpec bb
-  (_, _, _, pid) <- createProcess p
-  _  <- waitForProcess pid
-  mapM_ closeStdIO [std_in  p, std_out p, std_err p]
-  return ()
-
-
 type RunStepResult = IO (Either [RunFailure] RunDetail)
 
 runDirect :: BenchmarkBundle -> IO RunResult
 runDirect bb = do
-  details <- go count []
-  case details of
+  mbDetails <- go count []
+  case mbDetails of
     Left e   -> return $ Failure e
     Right ds -> do
       summ <- summarize ds
       return $ Success summ ds
-  where 
+  where
   go 0 ds = return $ Right (reverse ds)
   go n ds = do
     res <- runB bb
     case res of
       Right d -> go (n-1) (d:ds)
       Left e  -> return $ Left e
-  runB    = runBenchmarkWithTimeout (6 * (10^6))
+  runB    = runBenchmarkWithTimeout (6 * (10^(6::Int)))
   count   = (iters bb)
 
 summarize :: [RunDetail] -> IO RunSummary
