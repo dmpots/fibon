@@ -13,23 +13,23 @@ config = RunConfig {
   , sizeList = [Test, Ref]
   , tuneList = [Base, Peak]
   , iterations = 10
-  , flagsBuilder = flags
+  , configBuilder = build
   }
 
-flags :: FlagBuilder
-flags ConfigTuneDefault ConfigBenchDefault = do
+build :: ConfigBuilder
+build ConfigTuneDefault ConfigBenchDefault = do
   append ConfigureFlags "--ghc"
   append ConfigureFlags "--disable-optimization"
   done
 
-flags (ConfigTune Base) ConfigBenchDefault = do
+build (ConfigTune Base) ConfigBenchDefault = do
   append  ConfigureFlags "--ghc-option=-O0"
 
-flags (ConfigTune Peak) ConfigBenchDefault = do
+build (ConfigTune Peak) ConfigBenchDefault = do
   append  ConfigureFlags "--ghc-option=-O2"
 
 --flags (ConfigTuneDefault) (ConfigBench Scc)= do
 --  append  ConfigureFlags "--ghc-options -O3"
 
-flags _ _ = do
+build _ _ = do
   done

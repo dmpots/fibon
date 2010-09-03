@@ -59,9 +59,10 @@ mkBundle rc bm wd bmsDir uniq size tune =
     , iters         = (iterations rc)
     , tuneSetting   = tune
     , inputSize     = size
-    , fullFlags     = mkFlagConfig rc bm size tune
+    , fullFlags     = flags configuration
     , benchDetails  = benchInstance bm size
   }
+  where configuration = mkConfig rc bm size tune
 
 bundleName :: BenchmarkBundle -> String
 bundleName bb = concat $ intersperse "-"

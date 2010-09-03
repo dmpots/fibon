@@ -2,18 +2,20 @@
 module Fibon.ConfigMonad (
     ConfigParameter(..)
   , FlagConfig(..)
+  , Configuration(..)
   , ConfigMonad
   , done
   , append
   , replace
-  , runConfig
-  , mergeConfig
+  , setTimeout
+  , runWithInitialFlags
 )
 where
 
 import Control.Monad.State
 import qualified Data.Map as Map
 import Fibon.FlagConfig
+import Fibon.Timeout
 
 data ConfigParameter =
     ConfigureFlags
@@ -22,8 +24,10 @@ data ConfigParameter =
   deriving (Show, Eq, Ord, Enum)
 
 
-newtype GenConfigMonad a = CM {configState :: (State ConfigMap a)}
+newtype GenConfigMonad a = CM {configState :: (State ConfigState a)}
   deriving (Monad)
+data ConfigState = ConfigState {flagS :: ConfigMap, timeoutS :: Timeout}
+data Configuration = Configuration {flags :: FlagConfig, timeout :: Timeout}
 type ConfigMap   = Map.Map ConfigParameter [String]
 type ConfigMonad = GenConfigMonad ()
 
@@ -31,31 +35,37 @@ done :: ConfigMonad
 done = CM (return ())
 
 replace :: ConfigParameter -> String -> ConfigMonad
-replace c f = do
-  CM $ modify (Map.insert c [f])
+replace p f = do
+  CM $ modify $ (\c -> c {flagS = Map.insert p [f] (flagS c)})
 
 append :: ConfigParameter -> String -> ConfigMonad
-append c f = do
-  CM $ modify (Map.insertWith (flip (++)) c (words f))
+append p f = do
+  CM $ modify $ (\c -> c {flagS = Map.insertWith (flip (++)) p as (flagS c)})
+  where as = words f
 
-runConfig :: ConfigMonad -> FlagConfig
-runConfig c = toFlagConfig finalState
-  where
-  finalState = execState (configState c) (Map.empty)
+setTimeout :: Timeout -> ConfigMonad
+setTimeout t = do
+  CM $ modify $ (\c -> c {timeoutS = t})
 
-mergeConfig :: FlagConfig -> ConfigMonad -> FlagConfig
-mergeConfig fc cm = toFlagConfig finalState
+runWithInitialFlags :: FlagConfig -> ConfigMonad -> Configuration
+runWithInitialFlags fc cm = toConfig finalState
   where
-  startState = fromFlagConfig fc
+  startState = ConfigState {flagS = fromFlagConfig fc, timeoutS = Infinity}
   finalState = execState (configState cm) startState
 
-toFlagConfig :: ConfigMap -> FlagConfig
-toFlagConfig configMap =
-  FlagConfig {
-      configureFlags = Map.findWithDefault [] ConfigureFlags configMap
-    , buildFlags     = Map.findWithDefault [] BuildFlags configMap
-    , runFlags       = Map.findWithDefault [] RunFlags configMap
+toConfig :: ConfigState -> Configuration
+toConfig state = Configuration {
+    flags =
+      FlagConfig {
+          configureFlags = Map.findWithDefault [] ConfigureFlags configMap
+        , buildFlags     = Map.findWithDefault [] BuildFlags configMap
+        , runFlags       = Map.findWithDefault [] RunFlags configMap
+      }
+    ,
+    timeout   = (timeoutS state)
   }
+  where
+    configMap = flagS state
 
 fromFlagConfig :: FlagConfig -> ConfigMap
 fromFlagConfig fc =

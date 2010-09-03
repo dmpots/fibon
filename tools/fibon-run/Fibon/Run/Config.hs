@@ -1,7 +1,10 @@
 module Fibon.Run.Config (
     Fibon.ConfigMonad.append
+  , Fibon.ConfigMonad.setTimeout
   , Fibon.ConfigMonad.done
+  , Fibon.Timeout.Timeout(..)
   , Fibon.ConfigMonad.ConfigParameter(..)
+  , Fibon.ConfigMonad.Configuration(..)
   , Fibon.Benchmarks.FibonGroup(..)
   , Fibon.Benchmarks.FibonBenchmark(..)
   , Fibon.Benchmarks.allBenchmarks
@@ -11,27 +14,28 @@ module Fibon.Run.Config (
   , TuneSelection(..)
   , BenchmarkRunSelection(..)
   , BenchmarkConfigSelection(..)
-  , FlagBuilder
+  , ConfigBuilder
   , ConfigId
-  , mkFlagConfig
+  , mkConfig
 )
 where
 import Fibon.Benchmarks
 import Fibon.BenchmarkInstance
 import Fibon.InputSize
 import Fibon.ConfigMonad
+import Fibon.Timeout
 
 data RunConfig = RunConfig {
-      configId     :: ConfigId
-    , sizeList     :: [InputSize]
-    , tuneList     :: [TuneSetting]
-    , runList      :: [BenchmarkRunSelection]
-    , iterations   :: Int
-    , flagsBuilder :: FlagBuilder
+      configId      :: ConfigId
+    , sizeList      :: [InputSize]
+    , tuneList      :: [TuneSetting]
+    , runList       :: [BenchmarkRunSelection]
+    , iterations    :: Int
+    , configBuilder :: ConfigBuilder
   }
 
 type ConfigId = String
-type FlagBuilder = TuneSelection -> BenchmarkConfigSelection -> ConfigMonad
+type ConfigBuilder = TuneSelection -> BenchmarkConfigSelection -> ConfigMonad
 
 data TuneSetting = 
     Base 
@@ -54,12 +58,12 @@ data BenchmarkConfigSelection =
   | ConfigBenchDefault
   deriving(Show, Eq, Ord)
 
-mkFlagConfig :: RunConfig
+mkConfig :: RunConfig
                 -> FibonBenchmark
                 -> InputSize
                 -> TuneSetting
-                -> FlagConfig
-mkFlagConfig rc bm size tune = mergeConfig benchFlags configM
+                -> Configuration
+mkConfig rc bm size tune = runWithInitialFlags benchFlags configM
   where
   configM = mapM_ (uncurry builder) [
         (ConfigTuneDefault, ConfigBenchDefault)
@@ -69,7 +73,7 @@ mkFlagConfig rc bm size tune = mergeConfig benchFlags configM
       , (ConfigTuneDefault, ConfigBench bm)
       , (ConfigTune tune  , ConfigBench bm)
     ]
-  builder    = flagsBuilder rc
+  builder    = configBuilder rc
   group      = benchGroup bm
   benchFlags = flagConfig $ benchInstance bm size
 
