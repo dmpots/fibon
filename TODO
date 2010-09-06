@@ -1,3 +1,11 @@
+Tasks
 * Make it work when benchmarks submodule has not been checked out
 * Make it work with GHC-head
 * Add shootout benchmarks
+
+
+Benchmarks
+  + Parallel
+    * http://hackage.haskell.org/package/hlcm
+    * http://hackage.haskell.org/package/concurrent-sa
+
