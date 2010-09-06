@@ -10,12 +10,12 @@ import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
 import Fibon.Benchmarks
+import Fibon.Result
 import Fibon.Run.Actions
 import Fibon.Run.CommandLine
 import Fibon.Run.Config
 import Fibon.Run.Manifest
 import Fibon.Run.BenchmarkBundle
-import Fibon.Run.BenchmarkRunner
 import qualified Fibon.Run.Log as Log
 import System.Directory
 import System.Exit

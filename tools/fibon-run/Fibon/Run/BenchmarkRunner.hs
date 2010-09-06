@@ -1,7 +1,5 @@
 module Fibon.Run.BenchmarkRunner (
-    RunSummary(..)
-  , RunDetail(..)
-  , RunResult(..)
+    RunResult(..)
   , RunFailure(..)
   , Fibon.Run.BenchmarkRunner.run
 )
@@ -13,6 +11,7 @@ import Data.Time.Clock
 import Data.Maybe
 import qualified Data.Vector.Unboxed as Vector
 import Fibon.BenchmarkInstance
+import Fibon.Result
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.Log as Log
 import qualified Fibon.Run.SysTools as SysTools
@@ -29,23 +28,11 @@ data RunResult =
   | Failure [RunFailure]
   deriving (Read, Show)
 
-data RunDetail = RunDetail {runTime :: Double, runStats :: ExtraStats}
-  deriving (Read, Show)
-
 data RunFailure =
     MissingOutput FilePath
   | DiffError     String
   | Timeout
   deriving (Read, Show)
-
-data RunSummary = RunSummary {
-      meanTime     :: Double
-    , stdDevTime   :: Double
-    , statsSummary :: ExtraStats
-  }
-  deriving (Read, Show)
-
-type ExtraStats = [(String, String)]
 
 run :: BenchmarkBundle -> IO RunResult
 run bb = do

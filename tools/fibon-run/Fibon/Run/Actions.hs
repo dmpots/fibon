@@ -2,9 +2,6 @@ module Fibon.Run.Actions (
       runBundle
     , buildBundle
     , sanityCheckBundle
-    , FibonResult(..)
-    , BuildData(..)
-    , RunData(..)
     , FibonError
     , Action(..)
     , ActionRunner
@@ -15,6 +12,7 @@ import Data.List
 import Data.Maybe
 import Data.Time.Clock.POSIX
 import Fibon.BenchmarkInstance
+import Fibon.Result
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.BenchmarkRunner as Runner
 import qualified Fibon.Run.Log as Log
@@ -41,17 +39,6 @@ data ActionResult =
   | BuildComplete BuildData
   | RunComplete   RunData
   deriving(Show)
-
-data FibonResult = FibonResult {
-      benchName   :: String
-    , buildData   :: BuildData
-    , runData     :: RunData
-  } deriving(Show)
-
-data RunData = RunData {
-    summary :: RunSummary
-  , details :: [RunDetail]
-  } deriving(Show)
 
 data FibonError =
     BuildError   String
@@ -84,12 +71,6 @@ runFibonMonad :: BenchmarkBundle
               -> ErrorT FibonError (ReaderT BenchmarkBundle IO) a
               -> IO (Either FibonError a)
 runFibonMonad bb a = runReaderT (runErrorT a) bb
-
-data BuildData = BuildData {
-      buildTime :: Double  -- ^ Time to build the program
-    , buildSize :: String  -- ^ Size of the program
-  }
-  deriving(Show)
 
 runAction :: Action -> FibonRunMonad ActionResult
 runAction Sanity = do
