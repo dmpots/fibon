@@ -7,6 +7,7 @@ where
 
 import Control.Concurrent
 import Control.Monad
+import Control.Exception
 import Data.Time.Clock
 import Data.Maybe
 import qualified Data.Vector.Unboxed as Vector
@@ -109,7 +110,28 @@ destinationToRealFile bb  Stdout        = (pathToStdoutFile bb)
 destinationToRealFile bb  Stderr        = (pathToStderrFile bb)
 
 readExtraStats :: BenchmarkBundle -> IO ExtraStats
-readExtraStats bb = return []
+readExtraStats bb = do
+  let mbStatsFile   = extraStats bb
+      statsFile     = fromJust mbStatsFile
+      logReadE :: IOException -> IO ExtraStats
+      logReadE e =
+        Log.warn ("Error reading stats file: "++statsFile++"\n  "++show e)
+        >> return []
+      --logParseE =
+      --  Log.warn ("Error parsing stats file: "++statsFile) >> return []
+  case mbStatsFile of
+    Nothing -> return []
+    Just f  -> do
+      handle logReadE $
+        bracket (openFile ((pathToExeRunDir bb) </> f) ReadMode)
+                (hClose)
+                (\h -> hGetContents h >>= \s -> length s `seq` return s)
+                    --stats <- hGetContents h
+                    -- drop header line in machine readable stats
+                    --let body = (unlines . drop 1 . lines) stats
+                    --case reads body of
+                    --    [(p, _)] -> return p
+                    --    _        -> logParseE)
 
 type RunStepResult = IO (Either [RunFailure] RunDetail)
 
