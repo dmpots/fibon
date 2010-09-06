@@ -35,6 +35,7 @@ data RunSummary = RunSummary {
 data RunDetail = RunDetail {runTime :: Double, runStats :: ExtraStats}
   deriving (Read, Show)
 
-type ExtraStats = [(String, String)]
+--type ExtraStats = [(String, String)]
+type ExtraStats = String
 
 

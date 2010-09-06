@@ -42,6 +42,7 @@ data BenchmarkBundle = BenchmarkBundle {
     , fullFlags     :: FlagConfig
     , benchDetails  :: BenchmarkInstance
     , timeout       :: Maybe Int
+    , extraStats    :: Maybe FilePath
   } deriving (Show)
 
 mkBundle :: RunConfig
@@ -64,6 +65,7 @@ mkBundle rc bm wd bmsDir uniq size tune =
     , fullFlags     = flags configuration
     , benchDetails  = benchInstance bm size
     , timeout       = timeoutToMicroSeconds (limit configuration)
+    , extraStats    = (extraStatsFile configuration)
   }
   where
     configuration = mkConfig rc bm size tune

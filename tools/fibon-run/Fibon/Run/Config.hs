@@ -2,9 +2,12 @@ module Fibon.Run.Config (
     Fibon.ConfigMonad.append
   , Fibon.ConfigMonad.setTimeout
   , Fibon.ConfigMonad.done
+  , Fibon.ConfigMonad.collectExtraStatsFrom
+  , Fibon.ConfigMonad.noExtraStats
   , Fibon.Timeout.Timeout(..)
-  , Fibon.ConfigMonad.ConfigParameter(..)
-  , Fibon.ConfigMonad.Configuration(..)
+  , Fibon.ConfigMonad.FlagParameter(..)
+  , Fibon.ConfigMonad.Configuration
+  , Fibon.ConfigMonad.ConfigState(..)
   , Fibon.Benchmarks.FibonGroup(..)
   , Fibon.Benchmarks.FibonBenchmark(..)
   , Fibon.Benchmarks.allBenchmarks

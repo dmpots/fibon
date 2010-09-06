@@ -1,14 +1,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Fibon.ConfigMonad (
-    ConfigParameter(..)
+    FlagParameter(..)
   , FlagConfig(..)
-  , Configuration(..)
+  , Configuration
+  , ConfigState(..)
   , ConfigMonad
   , done
   , append
   , replace
   , setTimeout
   , runWithInitialFlags
+  , collectExtraStatsFrom
+  , noExtraStats
 )
 where
 
@@ -17,55 +20,71 @@ import qualified Data.Map as Map
 import Fibon.FlagConfig
 import Fibon.Timeout
 
-data ConfigParameter =
+data FlagParameter =
     ConfigureFlags
   | BuildFlags
   | RunFlags
   deriving (Show, Eq, Ord, Enum)
 
-
-newtype GenConfigMonad a = CM {configState :: (State ConfigState a)}
+newtype GenConfigMonad a = CM {
+    configState :: (State (ConfigState ConfigMap) a)
+  }
   deriving (Monad)
-data ConfigState = ConfigState {flagS :: ConfigMap, timeoutS :: Timeout}
-data Configuration = Configuration {flags :: FlagConfig, limit :: Timeout}
-type ConfigMap   = Map.Map ConfigParameter [String]
+
+data ConfigState a = ConfigState {
+    flags          :: a
+  , limit          :: Timeout
+  , extraStatsFile :: Maybe FilePath
+  }
+type ConfigMap   = Map.Map FlagParameter [String]
 type ConfigMonad = GenConfigMonad ()
+type Configuration = ConfigState FlagConfig
 
 done :: ConfigMonad
 done = CM (return ())
 
-replace :: ConfigParameter -> String -> ConfigMonad
+replace :: FlagParameter -> String -> ConfigMonad
 replace p f = do
-  CM $ modify $ (\c -> c {flagS = Map.insert p [f] (flagS c)})
+  CM $ modify $ (\c -> c {flags = Map.insert p [f] (flags c)})
 
-append :: ConfigParameter -> String -> ConfigMonad
+append :: FlagParameter -> String -> ConfigMonad
 append p f = do
-  CM $ modify $ (\c -> c {flagS = Map.insertWith (flip (++)) p as (flagS c)})
+  CM $ modify $ (\c -> c {flags = Map.insertWith (flip (++)) p as (flags c)})
   where as = words f
 
 setTimeout :: Timeout -> ConfigMonad
 setTimeout t = do
-  CM $ modify $ (\c -> c {timeoutS = t})
+  CM $ modify $ (\c -> c {limit = t})
+
+collectExtraStatsFrom :: FilePath -> ConfigMonad
+collectExtraStatsFrom f = do
+  CM $ modify $ (\c -> c {extraStatsFile = Just f})
+
+noExtraStats :: ConfigMonad
+noExtraStats = do
+  CM $ modify $ (\c -> c {extraStatsFile = Nothing})
 
 runWithInitialFlags :: FlagConfig -> ConfigMonad -> Configuration
 runWithInitialFlags fc cm = toConfig finalState
   where
-  startState = ConfigState {flagS = fromFlagConfig fc, timeoutS = Infinity}
+  startState = ConfigState {
+      flags          = fromFlagConfig fc
+    , limit          = Infinity
+    , extraStatsFile = Nothing
+    }
   finalState = execState (configState cm) startState
 
-toConfig :: ConfigState -> Configuration
-toConfig state = Configuration {
+toConfig :: (ConfigState ConfigMap) -> Configuration
+toConfig state = state {
     flags =
       FlagConfig {
           configureFlags = Map.findWithDefault [] ConfigureFlags configMap
         , buildFlags     = Map.findWithDefault [] BuildFlags configMap
         , runFlags       = Map.findWithDefault [] RunFlags configMap
       }
-    ,
-    limit = (timeoutS state)
   }
   where
-    configMap = flagS state
+    configMap = flags state
 
 fromFlagConfig :: FlagConfig -> ConfigMap
 fromFlagConfig fc =
