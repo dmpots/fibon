@@ -6,6 +6,7 @@ module Fibon.Run.Log (
   , Fibon.Run.Log.error
   , setupLogger
   , result
+  , summary
 )
 where
 
@@ -24,20 +25,26 @@ fibonLog = "Fibon"
 resultLog :: String
 resultLog = "Fibon.Result"
 
-setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath)
+summaryLog :: String
+summaryLog = "Fibon.Summary"
+
+setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath, FilePath)
 setupLogger logDir outDir runId = do
   let logFileName = printf "%s.LOG" runId
       logPath     = logDir </> logFileName
       resultPath  = outDir </> (printf "%s.RESULTS" runId)
+      summaryPath = outDir </> (printf "%s.SUMMARY" runId)
   ldExists <- doesDirectoryExist logDir
   unless ldExists (createDirectory logDir)
   h  <- openFile logPath WriteMode
   ch <- streamHandler        stdout NOTICE
   fh <- verboseStreamHandler h      DEBUG
   rh <- fileHandler resultPath      DEBUG
+  sh <- fileHandler summaryPath     DEBUG
   updateGlobalLogger rootLoggerName (setLevel DEBUG . setHandlers [ch,fh])
   updateGlobalLogger resultLog      (setLevel DEBUG . setHandlers [rh])
-  return (logPath, resultPath)
+  updateGlobalLogger summaryLog     (setLevel DEBUG . setHandlers [sh])
+  return (logPath, resultPath, summaryPath)
 
 debug, info, notice, warn, error :: String -> IO ()
 debug  = debugM fibonLog
@@ -47,4 +54,7 @@ warn   = warningM fibonLog
 error  = errorM fibonLog
 
 result :: String -> IO ()
-result = infoM "Fibon.Result"
+result  = infoM resultLog
+
+summary :: String -> IO ()
+summary = infoM summaryLog

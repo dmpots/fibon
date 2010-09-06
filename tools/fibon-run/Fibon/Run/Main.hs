@@ -15,6 +15,7 @@ import Fibon.Run.CommandLine
 import Fibon.Run.Config
 import Fibon.Run.Manifest
 import Fibon.Run.BenchmarkBundle
+import Fibon.Run.BenchmarkRunner
 import qualified Fibon.Run.Log as Log
 import System.Directory
 import System.Exit
@@ -36,16 +37,18 @@ main = do
       logPath    = currentDir </> "log"
       action     = optAction opts
   uniq       <- chooseUniqueName workingDir (configId runConfig)
-  (logFile, outFile)    <- Log.setupLogger logPath logPath uniq
+  (logFile, outFile, summaryFile) <- Log.setupLogger logPath logPath uniq
   startTime <- timeStamp
   Log.notice ("Starting Run at   " ++ startTime)
-  Log.notice ("Logging output to " ++ logFile)
-  Log.notice ("Logging result to " ++ outFile)
+  Log.notice ("Logging output  to " ++ logFile)
+  Log.notice ("Logging result  to " ++ outFile)
+  Log.notice ("Logging summary to " ++ summaryFile)
   mapM_ (runAndReport action) (makeBundles runConfig workingDir benchRoot uniq)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
-  Log.notice ("Logged output to " ++ logFile)
-  Log.notice ("Logged result to " ++ outFile)
+  Log.notice ("Logged output  to " ++ logFile)
+  Log.notice ("Logged result  to " ++ outFile)
+  Log.notice ("Logged summary to " ++ summaryFile)
 
 parseArgsOrDie :: IO Opt
 parseArgsOrDie = do
@@ -65,9 +68,10 @@ runAndReport action bundle = do
     Build  -> run buildBundle        (\(BuildData time _size) -> do
                 Log.info (printf "Build completed in %0.2f seconds" time)
               )
-    Run    -> run runBundle          (\fr@(FibonResult _n _br _rr) -> do
+    Run    -> run runBundle          (\fr@(FibonResult n _bd rd) -> do
                 -- Log.notice (show rr)
                 Log.result(show fr)
+                Log.summary(printf "%s %.4f" n ((meanTime . summary) rd))
               )
   return ()
   where

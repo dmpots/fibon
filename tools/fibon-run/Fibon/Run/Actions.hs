@@ -4,6 +4,7 @@ module Fibon.Run.Actions (
     , sanityCheckBundle
     , FibonResult(..)
     , BuildData(..)
+    , RunData(..)
     , FibonError
     , Action(..)
     , ActionRunner
@@ -16,7 +17,7 @@ import Data.Time.Clock.POSIX
 import Fibon.BenchmarkInstance
 import Fibon.Run.BenchmarkBundle
 import Fibon.Run.BenchmarkRunner as Runner
-import Fibon.Run.Log as Log
+import qualified Fibon.Run.Log as Log
 import qualified Fibon.Run.SysTools as SysTools
 import Control.Monad.Error
 import Control.Monad.Reader
@@ -38,13 +39,18 @@ type ActionRunner a = (BenchmarkBundle -> IO (Either FibonError a))
 data ActionResult =
     SanityComplete
   | BuildComplete BuildData
-  | RunComplete   RunSummary
+  | RunComplete   RunData
   deriving(Show)
 
 data FibonResult = FibonResult {
       benchName   :: String
     , buildData   :: BuildData
-    , runData     :: RunSummary
+    , runData     :: RunData
+  } deriving(Show)
+
+data RunData = RunData {
+    summary :: RunSummary
+  , details :: [RunDetail]
   } deriving(Show)
 
 data FibonError =
@@ -166,14 +172,14 @@ prepRun = do
     , pathToAllOutputFiles
     ]
 
-runRun :: FibonRunMonad RunSummary
+runRun :: FibonRunMonad RunData
 runRun =  do
   bb <- ask
   res <- io $ Runner.run bb
   io $ Log.info (show res)
   case res of
-    Success timing _ -> return timing
-    Failure msg      -> throwError $ RunError (summarize msg)
+    Success s d -> return     $ RunData  {summary = s, details = d}
+    Failure msg -> throwError $ RunError (summarize msg)
   where
   summarize = concat . intersperse "\n" . map  simplify
   simplify (MissingOutput f) = "Missing output file: "++f

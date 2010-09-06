@@ -1,5 +1,6 @@
 module Fibon.Run.BenchmarkRunner (
     RunSummary(..)
+  , RunDetail(..)
   , RunResult(..)
   , RunFailure(..)
   , Fibon.Run.BenchmarkRunner.run
@@ -24,7 +25,7 @@ import System.Process
 import Text.Printf
 
 data RunResult =
-    Success {summary :: RunSummary, details :: [RunDetail]}
+    Success {runSummary :: RunSummary, runDetails :: [RunDetail]}
   | Failure [RunFailure]
   deriving (Read, Show)
 
