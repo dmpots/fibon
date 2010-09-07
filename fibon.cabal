@@ -37,18 +37,13 @@ Executable fibon-run
   build-depends:  base >= 4 && < 5
                 , containers
                 , mtl         == 1.1.*
-                , pretty-show == 1.1.*
                 , directory   == 1.0.*
                 , filepath    == 1.1.*
                 , hslogger    == 1.0.*
                 , process     == 1.0.*
                 , time        == 1.1.*
-                , template-haskell
                 , old-locale  == 1.0.*
-
-                , criterion   == 0.5.*
                 , statistics  == 0.6.*
-                , mwc-random  == 0.7.*
                 , vector      == 0.6.*
 --  other-modules:  Fibon.Benchmarks
 

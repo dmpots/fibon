@@ -22,7 +22,6 @@ import System.Exit
 import System.Environment
 import System.FilePath
 import System.Locale
---import Text.Show.Pretty
 import Text.Printf
 
 
