@@ -142,7 +142,7 @@ prettyRunCommand bb = cmd
   stdioArgs  = [stdIn, stdOut, stdErr]
   stdIn      = case (stdinInput.benchDetails $ bb) of
                     Nothing -> ""
-                    Just f  -> pathToStdinFile bb f
+                    Just f  -> " < " ++ pathToStdinFile bb f
   stdOut     = "  > " ++ (pathToStdoutFile bb)
   stdErr     = " 2> " ++ (pathToStderrFile bb)
 
