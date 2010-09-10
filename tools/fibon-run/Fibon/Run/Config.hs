@@ -4,6 +4,8 @@ module Fibon.Run.Config (
   , Fibon.ConfigMonad.done
   , Fibon.ConfigMonad.collectExtraStatsFrom
   , Fibon.ConfigMonad.noExtraStats
+  , Fibon.ConfigMonad.useGhcDir
+  , Fibon.ConfigMonad.useGhcInPlaceDir
   , Fibon.Timeout.Timeout(..)
   , Fibon.ConfigMonad.FlagParameter(..)
   , Fibon.ConfigMonad.Configuration

@@ -12,6 +12,8 @@ module Fibon.ConfigMonad (
   , runWithInitialFlags
   , collectExtraStatsFrom
   , noExtraStats
+  , useGhcDir
+  , useGhcInPlaceDir
 )
 where
 
@@ -19,6 +21,7 @@ import Control.Monad.State
 import qualified Data.Map as Map
 import Fibon.FlagConfig
 import Fibon.Timeout
+import System.FilePath
 
 data FlagParameter =
     ConfigureFlags
@@ -63,6 +66,16 @@ collectExtraStatsFrom f = do
 noExtraStats :: ConfigMonad
 noExtraStats = do
   CM $ modify $ (\c -> c {extraStatsFile = Nothing})
+
+useGhcDir :: FilePath -> ConfigMonad
+useGhcDir dir = do
+  append ConfigureFlags $ "--with-ghc="++(dir </> "ghc")
+  append ConfigureFlags $ "--with-ghc-pkg="++(dir </> "ghc-pkg")
+
+useGhcInPlaceDir :: FilePath -> ConfigMonad
+useGhcInPlaceDir dir = do
+  append ConfigureFlags $ "--with-ghc="++(dir </> "ghc-stage2")
+  append ConfigureFlags $ "--with-ghc-pkg="++(dir </> "ghc-pkg")
 
 runWithInitialFlags :: FlagConfig -> ConfigMonad -> Configuration
 runWithInitialFlags fc cm = toConfig finalState
