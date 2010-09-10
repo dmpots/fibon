@@ -1,23 +1,26 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Fibon.Analyse.TableSpec (
-    Column(..)
+    ColSpec(..)
   , TableSpec
   , onExtraStats
+  , onFibonStats
 )
 where
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Result
 
 -- Idea borrowed graciously from nofib-analyse
-data Column a =
+data ColSpec a =
   forall b . Metric b =>
-      Column
-          String                      -- Short name (for column heading)
-          (ParsedResult a -> Maybe b) -- How to get the result
+      ColSpec
+          String                       -- Short name (for column heading)
+          (AnalyseResult a -> Maybe b) -- How to get the result
 
-type TableSpec a = [Column a]
+type TableSpec a = [ColSpec a]
 
 
-onExtraStats :: Metric b => (a -> b) -> ParsedResult a -> Maybe b
+onExtraStats :: (a -> b) -> AnalyseResult a -> Maybe b
 onExtraStats f = fmap f . extraStats
 
+onFibonStats :: (FibonStats -> b) -> AnalyseResult a -> Maybe b
+onFibonStats f = Just . f . fibonStats

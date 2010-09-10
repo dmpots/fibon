@@ -15,3 +15,5 @@ data DummyStats = DummyStats {
     d :: MemSize
   }
 
+data ExtraStats = GhcStats
+  deriving(Read, Show, Enum, Ord, Eq)

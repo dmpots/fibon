@@ -57,7 +57,8 @@ Executable fibon-init
 Executable fibon-analyse
   main-is:        Fibon/Analyse/Main.hs
   ghc-options:    -Wall
-  hs-source-dirs: tools/fibon-analyse
+  hs-source-dirs: tools/fibon-analyse, lib
   build-depends:    base >= 4 && < 5
                   , bytestring == 0.9.*
+                  , text       == 0.8.*
   extensions: CPP

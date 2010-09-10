@@ -10,22 +10,21 @@ import Fibon.Analyse.TableSpec
 
 basicTable :: TableSpec a
 basicTable = [
-      Column "RunTime"     (Just . runTime)
-    , Column "Size"        (Just . binarySize)
-    , Column "CompileTime" (Just . compileTime)
+      ColSpec "RunTime"     (onFibonStats wallTime)
+    , ColSpec "Size"        (onFibonStats binarySize)
+    , ColSpec "CompileTime" (onFibonStats compileTime)
   ]
-
 
 ghcStatsSummaryTable :: TableSpec GhcStats
 ghcStatsSummaryTable = [
-      Column "Size"       (Just . binarySize)
-    , Column "Allocs"     (onExtraStats bytesAllocated)
-    , Column "Runtime"    (onExtraStats cpuTime)
-    , Column "Elapsed"    (onExtraStats wallTime)
-    , Column "TotalMem"   (onExtraStats maxBytesUsed)
+      ColSpec "Size"       (onFibonStats binarySize)
+    , ColSpec "Allocs"     (onExtraStats bytesAllocated)
+    , ColSpec "Runtime"    (onExtraStats ghcCpuTime)
+    , ColSpec "Elapsed"    (onExtraStats ghcWallTime)
+    , ColSpec "TotalMem"   (onExtraStats maxBytesUsed)
   ]
 
---t2 = [ColumnSpec "time" (Just        . compileTime),
---      ColumnSpec "gc"   (fmap numGCs . extraStats)
---      --ColumnSpec "gc"   (fmap d      . extraStats)
+--t2 = [ColSpecSpec "time" (Just        . compileTime),
+--      ColSpecSpec "gc"   (fmap numGCs . extraStats)
+--      --ColSpecSpec "gc"   (fmap d      . extraStats)
 --      ]

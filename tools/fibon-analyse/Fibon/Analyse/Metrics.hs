@@ -3,6 +3,7 @@ module Fibon.Analyse.Metrics (
     MemSize(..)
   , ExecTime(..)
   , Estimate(..)
+  , Measurement(..)
   , Metric(..)
   , MetricFormat(..)
 )
@@ -21,20 +22,21 @@ data Estimate a = Estimate {
   }
   deriving (Read, Show)
 
+data Measurement a = 
+    Single   a
+  | Interval (Estimate a)
+  deriving (Read, Show)
+
 class Metric a where
   toFormat :: a -> MetricFormat
 
-instance Metric (Estimate ExecTime) where
-  toFormat = TimeInterval
+instance Metric (Measurement ExecTime) where
+  toFormat (Single m)   = Time m 
+  toFormat (Interval e) = TimeInterval e
 
-instance Metric (Estimate MemSize) where
-  toFormat = SizeInterval
-
-instance Metric MemSize where
-  toFormat = Size
-
-instance Metric ExecTime where
-  toFormat = Time
+instance Metric (Measurement MemSize) where
+  toFormat (Single m)   = Size m
+  toFormat (Interval e) = SizeInterval e
 
 data MetricFormat =
     Percentage    Double

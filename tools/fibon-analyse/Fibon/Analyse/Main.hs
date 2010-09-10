@@ -2,15 +2,34 @@ module Main (main) where
 import qualified Data.ByteString as B
 import qualified Data.Map        as M
 import Data.Maybe
+import Fibon.Result
+import Fibon.Analyse.Analysis
 import Fibon.Analyse.ExtraStats
 import Fibon.Analyse.Metrics
-import Fibon.Analyse.Parse
+import Fibon.Analyse.Result
 import Fibon.Analyse.Tables
-import Fibon.Analyse.TableSpec
+import System.Environment
 
 
 main :: IO ()
-main = putStrLn "hi"
+main = do
+  args <- getArgs
+  mapM_ (\f -> runAnalysis simpleAnalysis f >>= putStrLn . show) args
+
+simpleAnalysis :: Analysis GhcStats
+simpleAnalysis  = Analysis {
+      fibonAnalysis  = return . getStats
+    , extraParser    = const Nothing
+    , extraAnalysis  = return . head
+  }
+  where 
+    getStats fr = FibonStats {
+          compileTime = Single $ ExecTime ((buildTime . buildData) fr)
+        , binarySize  = Single $ MemSize 0 
+        , wallTime    = Single $ ExecTime ((meanTime . summary . runData) fr)
+
+      }
+
 
 --t1 = basicTable
 --
