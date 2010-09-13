@@ -4,12 +4,10 @@ module Fibon.Analyse.Parse(
 )
 where
 
-import Control.Monad
 import qualified Data.Map        as M
 import qualified Data.Text       as T
 import qualified Data.Text.IO    as T
 import Fibon.Result
-import Fibon.Analyse.Metrics
 import Fibon.Analyse.ExtraStats
 import Fibon.Analyse.Result
 import System.FilePath
