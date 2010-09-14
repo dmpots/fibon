@@ -1,11 +1,9 @@
 module Main (main) where
-import qualified Data.ByteString as B
-import qualified Data.Map        as M
-import Data.Maybe
 import Fibon.Result
 import Fibon.Analyse.Analysis
 import Fibon.Analyse.ExtraStats
 import Fibon.Analyse.Metrics
+import Fibon.Analyse.Output
 import Fibon.Analyse.Result
 import Fibon.Analyse.Tables
 import System.Environment
@@ -13,8 +11,13 @@ import System.Environment
 
 main :: IO ()
 main = do
-  args <- getArgs
-  mapM_ (\f -> runAnalysis simpleAnalysis f >>= putStrLn . show) args
+  args    <- getArgs
+  mbResults <- mapM (\f -> runAnalysis simpleAnalysis f) args
+  case concat `fmap` sequence mbResults of
+    Nothing -> putStrLn "Error Parsing Results"
+    Just rs -> do
+      putStrLn $ renderSummaryTable rs AsciiArt basicTable
+      putStrLn $ renderTables       rs AsciiArt basicTable
 
 simpleAnalysis :: Analysis GhcStats
 simpleAnalysis  = Analysis {
