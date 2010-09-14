@@ -1,18 +1,27 @@
 -------------------------------------------------------------------
 Goals
 -------------------------------------------------------------------
-Drop in replacement for nofib in GHC
-Can be used to collect other kinds of info (papi numbers)
-By default will collect timing info
-Can be configured to collect other info (e.g. heap usage, compile time, etc)
+ + Drop in replacement for nofib in GHC
+ + Can be used to collect other kinds of info (papi numbers)
+ + By default will collect timing info
+ + Can be configured to collect other info (e.g. heap usage, compile
+   time, etc)
 
 -------------------------------------------------------------------
 TODO
 -------------------------------------------------------------------
 fibon-analyse
   - write out data
-  
-Add more benchmarks
 
+-------------------------------------------------------------------
+Benchmark Notes
+-------------------------------------------------------------------
+Ghc610
+  ChameneosRedux
+    Does not work with -O0. Gets "thread blocked indefinitely"
+    exception
 
+  Mandelbrot
+    The Test size gives different result, but the Ref size is ok.
+    Think it is just some kind of floating point wibbles.
 
