@@ -2,7 +2,7 @@ module FindBench(findLocalBenchmarks) where
 --module Main where
 
 import Control.Exception
-import Control.Monad (filterM)
+import Control.Monad (filterM, when)
 import Data.List
 import System.Directory
 import System.FilePath
@@ -28,6 +28,7 @@ findLocalBenchmarks baseDir = do
       qualifiedBms = 
         concat $ zipWith (\g bs -> map ((,)g) (sort bs)) allGroups bms
       outFile      = searchPath ++ ".hs"
+  when (null allGroups) printNoBenchmarksWarning
   putStrLn $ "... found ("++ (show.length$ allBms)++")"
   putStrLn $ "  writing benchmark manifest to "++outFile
   h <- openFile outFile WriteMode
@@ -104,18 +105,16 @@ groupName :: String -> String
 groupName g = g
 
 benchDataDecl :: [String] -> String
-benchDataDecl []  = ""
-benchDataDecl bms =
-  "data FibonBenchmark =\n    " ++
-  (join ("\n  | ") bms) ++
-  "\n    deriving(Read, Show, Eq, Ord, Enum)"
+benchDataDecl bms = "data FibonBenchmark = " ++ datas bms ++ derivings
+  where derivings = "\n    deriving(Read, Show, Eq, Ord, Enum)"
+        datas []  = "NoBenchmarksFound"
+        datas bms = "\n   " ++ (join ("\n  | ") bms)
 
 groupDataDecl :: [String] -> String
-groupDataDecl []   = ""
-groupDataDecl grps = 
-  "data FibonGroup =\n    " ++
-  (join ("\n  | ") (map groupName grps)) ++
-  "\n    deriving(Read, Show, Eq, Ord, Enum)"
+groupDataDecl grps = "data FibonGroup = " ++ datas grps ++ derivings
+  where derivings  = "\n    deriving(Read, Show, Eq, Ord, Enum)"
+        datas []   = "NoGroupsFound"
+        datas grps = "\n   "++ (join ("\n  | ") (map groupName grps))
 
 allBenchmarksDecl :: [String] -> String
 allBenchmarksDecl bms =
@@ -125,28 +124,51 @@ allBenchmarksDecl bms =
   "\n  ]"
 
 benchGroupDecl :: [(String, String)] -> String
-benchGroupDecl qBms =
-  "benchGroup :: FibonBenchmark -> FibonGroup\n"++
-  (join ("\n") $ map defn qBms)
+benchGroupDecl []   = benchGroupTypeDecl ++ "benchGroup = "++ emptyError
+benchGroupDecl qBms = benchGroupTypeDecl ++ (join ("\n") $ map defn qBms)
   where
   defn (g,bm) = "benchGroup " ++ bm ++ " = " ++ (groupName g)
-  
-benchInstanceDecl :: [(String, String)] -> String
-benchInstanceDecl qBms =
-  "benchInstance :: FibonBenchmark -> InputSize -> BenchmarkInstance\n"++
-  (join ("\n") $ map defn qBms)
-  where
-  defn (g,bm) = "benchInstance " ++ bm ++ " = " ++ (importAs g bm) ++ ".mkInstance"
 
+benchGroupTypeDecl :: String
+benchGroupTypeDecl = "benchGroup :: FibonBenchmark -> FibonGroup\n"
+
+benchInstanceDecl :: [(String, String)] -> String
+benchInstanceDecl []   = benchInstanceTypeDecl ++ "benchInstance = "++ emptyError
+benchInstanceDecl qBms = benchInstanceTypeDecl ++ (join ("\n") $ map defn qBms)
+  where
+  defn (g,bm) =
+    "benchInstance " ++ bm ++ " = " ++ (importAs g bm) ++ ".mkInstance"
+
+benchInstanceTypeDecl :: String
+benchInstanceTypeDecl =
+  "benchInstance :: FibonBenchmark -> InputSize -> BenchmarkInstance\n"
 
 benchPathDecl :: [(String, String)] -> String
-benchPathDecl qBms =
-  "benchPath :: FibonBenchmark -> FilePath\n"++
-  (join ("\n") $ map defn qBms)
+benchPathDecl []   = benchPathTypeDecl ++ "benchPath = " ++ emptyError
+benchPathDecl qBms = benchPathTypeDecl ++ (join ("\n") $ map defn qBms)
   where
   defn (g,bm) = "benchPath " ++ bm ++ " = " ++ s g ++ " </> " ++ s bm
   s x = "\"" ++ x ++"\""
 
+benchPathTypeDecl :: String
+benchPathTypeDecl = "benchPath :: FibonBenchmark -> FilePath\n"
+
 join :: String -> [String] -> String
 join s ss = concat (intersperse s ss)
+
+emptyError :: String
+emptyError = "error \"No benchmarks found. Need to re-run cabal config step\""
+
+printNoBenchmarksWarning :: IO ()
+printNoBenchmarksWarning = do
+  putStrLn "\n"
+  putStrLn banner
+  putStrLn $cap("! No benchmarks found.")
+  putStrLn $cap("! You will not be able to run collect results with fibon-run")
+  putStrLn banner
+  putStrLn ""
+  where
+  banner = line++"WARNING"++line
+  line   = take 30 (repeat '-')
+  cap s  = s ++ take ((length banner) - (length s) - 1) (repeat ' ') ++ "!"
 
