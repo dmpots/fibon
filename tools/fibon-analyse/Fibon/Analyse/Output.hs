@@ -32,7 +32,7 @@ renderTables rs@(baseline:_compares) fmt tableSpec =
   where
     render (c, t) = 
       c ++ "\n" ++
-      renderAs fmt (printf fmtString) id pprMetric table
+      renderAs fmt (printf fmtString) id pprPerfData table
       where table = (Table rowHeader colHeader t)
     tables = map (\c -> (cName c , map (rowData rs c) benchNames)) tableSpec
     rowHeader = Group NoLine rowNames
@@ -52,7 +52,7 @@ renderSummaryTable [base, peak] fmt tableSpec =
   where
     render t =
       "Fibon Summary" ++ "\n" ++
-      renderAs fmt (printf fmtString) id pprMetric table
+      renderAs fmt (printf fmtString) id pprPerfData table
       where table = (Table rowHeader colHeader t)
     summary = 
       map (\bm -> concatMap (\c -> rowData [peak] c bm) tableSpec) benchNames
@@ -65,12 +65,12 @@ renderSummaryTable [base, peak] fmt tableSpec =
 renderSummaryTable _ _ _ = ""
 
 
-rowData :: [ResultColumn a] -> ColSpec a -> BenchName -> [MetricFormat]
+rowData :: [ResultColumn a] -> ColSpec a -> BenchName -> [PerfData]
 rowData resultColumns (ColSpec _ metric) benchName  = metrics
   where
   metrics = map (getMetric . M.lookup benchName . results) resultColumns
   getMetric Nothing  = NoResult
-  getMetric (Just a) = toFormat (metric a)
+  getMetric (Just a) = perf (metric a)
 
 
 type RenderFun rh ch td =  (rh -> String) -- ^ Row header renderer

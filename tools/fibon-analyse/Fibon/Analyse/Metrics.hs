@@ -5,8 +5,8 @@ module Fibon.Analyse.Metrics (
   , Estimate(..)
   , Measurement(..)
   , Metric(..)
-  , MetricFormat(..)
-  , pprMetric
+  , PerfData(..)
+  , pprPerfData
 )
 where
 
@@ -31,41 +31,41 @@ data Measurement a =
   deriving (Read, Show)
 
 class Metric a where
-  toFormat :: a -> MetricFormat
+  perf :: a -> PerfData
 
 instance Metric (Measurement ExecTime) where
-  toFormat (Single m)   = Time m 
-  toFormat (Interval e) = TimeInterval e
+  perf (Single m)   = RawTime m
+  perf (Interval e) = RawTimeInterval e
 
 instance Metric (Measurement MemSize) where
-  toFormat (Single m)   = Size m
-  toFormat (Interval e) = SizeInterval e
+  perf (Single m)   = RawSize m
+  perf (Interval e) = RawSizeInterval e
 
 instance Metric a => Metric (Maybe a) where
-  toFormat Nothing  = NoResult
-  toFormat (Just x) = toFormat x
+  perf Nothing  = NoResult
+  perf (Just x) = perf x
 
-data MetricFormat =
+data PerfData =
     NoResult
   | Percentage    Double
   | Ratio         Double
-  | Time          ExecTime
-  | Size          MemSize
-  | TimeInterval (Estimate ExecTime)
-  | SizeInterval (Estimate MemSize)
+  | RawTime       ExecTime
+  | RawSize       MemSize
+  | RawTimeInterval (Estimate ExecTime)
+  | RawSizeInterval (Estimate MemSize)
   deriving(Read, Show)
 
-pprMetric :: MetricFormat -> String
-pprMetric NoResult       = "--"
-pprMetric (Percentage d) = printf "%0.2f%%" (d * 100)
-pprMetric (Ratio d)      = printf "%0.2f"    d
-pprMetric (Time s)       = printf "%0.2fs"  (fromExecTime s)
-pprMetric (Size s)       = printf "%0dk"
+pprPerfData :: PerfData -> String
+pprPerfData NoResult       = "--"
+pprPerfData (Percentage d) = printf "%0.2f%%" (d * 100)
+pprPerfData (Ratio d)      = printf "%0.2f"    d
+pprPerfData (RawTime s)    = printf "%0.2fs"  (fromExecTime s)
+pprPerfData (RawSize s)    = printf "%0dk"
                               (round (fromIntegral (fromMemSize s) / 1000 :: Double)::Word64)
-pprMetric (TimeInterval e) = printf "%0.2f%ss"
+pprPerfData (RawTimeInterval e) = printf "%0.2f%ss"
                               ((fromExecTime . ePoint) e)
                               (pprPlusMinus e fromExecTime)
-pprMetric (SizeInterval e) = printf "%d%sk"
+pprPerfData (RawSizeInterval e) = printf "%d%sk"
                               ((fromMemSize . ePoint) e)
                               (pprPlusMinus e fromMemSize)
 
