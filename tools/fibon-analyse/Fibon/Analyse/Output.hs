@@ -32,7 +32,7 @@ renderTables rs@(baseline:_compares) fmt tableSpec =
   where
     render (c, t) = 
       c ++ "\n" ++
-      renderAs fmt (printf fmtString) id pprPerfData table
+      renderAs fmt (printf fmtString) id (pprPerfData (printUnits fmt)) table
       where table = (Table rowHeader colHeader t)
     tables = map (\c -> (cName c , map (rowData rs c) benchNames)) tableSpec
     rowHeader = Group NoLine rowNames
@@ -52,7 +52,7 @@ renderSummaryTable [base, peak] fmt tableSpec =
   where
     render t =
       "Fibon Summary" ++ "\n" ++
-      renderAs fmt (printf fmtString) id pprPerfData table
+      renderAs fmt (printf fmtString) id (pprPerfData (printUnits fmt)) table
       where table = (Table rowHeader colHeader t)
     summary = 
       map (\bm -> concatMap (\c -> rowData [peak] c bm) tableSpec) benchNames
@@ -83,4 +83,12 @@ renderAs AsciiArt         = Ascii.render
 renderAs Latex            = Latex.render
 renderAs Csv              = Csv.render
 renderAs (SimpleText sep) = Simple.render sep
+
+
+-- | Don't print units for outputs which are intended to be inputs to
+--   other analysis programs (like R or Excel)
+printUnits :: OutputFormat -> Bool
+printUnits (SimpleText _) = False
+printUnits Csv            = False
+printUnits _              = True
 
