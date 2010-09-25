@@ -16,15 +16,11 @@ Build-type:          Custom
 --Extra-source-files:
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.2
+Cabal-version:       >=1.8
 
---Library
---  exposed-modules:  Fibon.Types
---                  , Fibon.Benchmarks
---  other-modules:    Fibon.Benchmarks.Spectral.Scc.Fibon.RunConfig
---  hs-source-dirs:   tools/fibon-lib
---                  , benchmarks/
---  build-depends:    base >= 4 && < 5
+Flag analyse
+  description: Build the fibon-analyse program
+  default: True
 
 Executable fibon-run
   main-is:          Fibon/Run/Main.hs
@@ -52,14 +48,21 @@ Executable fibon-init
   ghc-options:    -Wall
   hs-source-dirs: tools/fibon-init
   build-depends:  base >= 4 && < 5
+                , filepath    == 1.1.*
+                , directory   == 1.0.*
                 , Cabal == 1.8.*
 
 Executable fibon-analyse
+  if (flag(analyse))
+    buildable: True
+  else
+    buildable: False
   main-is:        Fibon/Analyse/Main.hs
   ghc-options:    -Wall
   hs-source-dirs: tools/fibon-analyse, lib
-  build-depends:    base >= 4 && < 5
-                  , bytestring == 0.9.*
-                  , text       == 0.8.*
-                  , tabular    == 0.2.*
+  if (flag(analyse))
+    build-depends:    base >= 4 && < 5
+                    , bytestring == 0.9.*
+                    , text       == 0.8.*
+                    , tabular    == 0.2.*
   extensions: CPP
