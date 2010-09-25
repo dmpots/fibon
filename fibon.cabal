@@ -62,7 +62,12 @@ Executable fibon-analyse
   hs-source-dirs: tools/fibon-analyse, lib
   if (flag(analyse))
     build-depends:    base >= 4 && < 5
+                    , containers
+                    , mtl        == 1.1.*
+                    , filepath   == 1.1.*
                     , bytestring == 0.9.*
                     , text       == 0.8.*
                     , tabular    == 0.2.*
+                    , vector     == 0.6.*
+                    , statistics == 0.6.*
   extensions: CPP
