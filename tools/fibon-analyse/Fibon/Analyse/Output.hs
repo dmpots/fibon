@@ -6,6 +6,7 @@ module Fibon.Analyse.Output (
 where
 
 import qualified Data.Map as M
+import Fibon.Analyse.Analysis
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Result
 import Fibon.Analyse.Tables
@@ -25,55 +26,60 @@ data OutputFormat =
 -- | Render a series of tables based on the 'TableSpec'
 --   A table is rendered for each column in the 'TableSpec'. The data for the
 --   columns are taken from the list of 'ResultColumn' passed to the function.
-renderTables :: [ResultColumn a] -> OutputFormat -> TableSpec a  -> String
+renderTables :: [ResultColumn a] -> OutputFormat -> [ColSpec a] -> String
 renderTables [] _fmt _spec = ""
-renderTables rs@(baseline:_compares) fmt tableSpec = 
-  unlines $ map render tables
+renderTables rs@(baseline:compares) fmt tableSpec =
+  unlines $ map render tableSpec
   where
-    render (c, t) = 
-      c ++ "\n" ++
-      renderAs fmt (printf fmtString) id (renderPerfData fmt) table
-      where table = (Table rowHeader colHeader t)
-    tables = map (\c -> (cName c , map (rowData rs c) benchNames)) tableSpec
-    rowHeader = Group NoLine rowNames
-    colHeader = Group NoLine colNames
-    rowNames = map Header benchNames
-    colNames = map Header resultNames
-    benchNames = M.keys (results baseline)
-    resultNames = map resultLabel rs
-    fmtString = "%"++(show . maximum $ map length benchNames)++"s"
+    render colSpec =
+      renderTable (cName colSpec) colNames columns fmt [colSpec]
+    columns     = baselineCol : compareCols
+    baselineCol = (NormNone, baseline)
+    compareCols = [(NormPercent baseline, c) | c <- compares]
+    colNames = map resultLabel rs
+
 
 -- | Render a summary table comparing the "base" to a "peak" result.
 --   The table is rendered with a column of "peak" data for each column listed
 --   in the 'TableSpec'.
 renderSummaryTable::[ResultColumn a] -> OutputFormat -> TableSpec a -> String
 renderSummaryTable [base, peak] fmt tableSpec = 
-  render summary
+  renderTable "Fibon Summary" colNames columns fmt tableSpec
+  where
+    columns = [(NormPercent base, peak)]
+    colNames = map cName tableSpec
+renderSummaryTable _ _ _ = ""
+
+-- | Renders a table. The number of columns is
+--   length (tableData) * length (TableSpec).
+renderTable :: String                          -- ^ Table name
+            -> [String]                        -- ^ Column names
+            -> [(Normalize a, ResultColumn a)] -- ^ Table data
+            -> OutputFormat                    -- ^ Output format
+            -> TableSpec a                     -- ^ Table description
+            -> String
+renderTable _  _ [] _ _ = ""
+renderTable tableName columnNames rs@(aResult:_) fmt tableSpec =
+  render table
   where
     render t =
-      "Fibon Summary" ++ "\n" ++
-      renderAs fmt (printf fmtString) id (renderPerfData fmt) table
-      where table = (Table rowHeader colHeader t)
-    summary = 
-      map (\bm -> concatMap (\c -> rowData [peak] c bm) tableSpec) benchNames
+      tableName ++ errMsg ++ "\n" ++
+      renderAs fmt (printf fmtString) id (renderPerfData fmt) tab
+      where tab = (Table rowHeader colHeader t)
+    (errMsg, (rowLabels, table)) =
+      case computeRows rs benchNames tableSpec of
+        Left err   -> (err, ([],[[]]))
+        Right rows -> ("", unzip rows)
     rowHeader = Group NoLine rowNames
     colHeader = Group NoLine colNames
-    rowNames = map Header benchNames
-    colNames = map (Header . cName) tableSpec
-    benchNames = M.keys (results base)
-    fmtString = "%"++(show . maximum $ map length benchNames)++"s"
-renderSummaryTable _ _ _ = ""
+    rowNames = map Header rowLabels
+    colNames = map Header columnNames
+    benchNames = M.keys (results . snd $ aResult)
+    fmtString = "%"++(show . maximum $ map length rowLabels)++"s"
+
 
 renderPerfData :: OutputFormat -> (PerfData -> String)
 renderPerfData = pprPerfData . includeUnits
-
-rowData :: [ResultColumn a] -> ColSpec a -> BenchName -> [PerfData]
-rowData resultColumns (ColSpec _ metric) benchName  = metrics
-  where
-  metrics = map (getMetric . M.lookup benchName . results) resultColumns
-  getMetric Nothing  = NoResult
-  getMetric (Just a) = maybe NoResult Raw (perf (metric a))
-
 
 type RenderFun rh ch td =  (rh -> String) -- ^ Row header renderer
                         -> (ch -> String) -- ^ Col header renderer

@@ -1,6 +1,8 @@
 module Fibon.Analyse.Analysis (
     Analysis(..)
   , runAnalysis
+  , computeRows
+  , Normalize(..)
 )
 where
 import qualified Data.Map        as M
@@ -109,20 +111,7 @@ computeOneColumn bench (ColSpec _ metric) (normType, resultColumn) =
                                         (getRawPerf base)
     getRawPerf rc = perf $ fmap metric ((M.lookup bench . results) rc)
 
-
-{-
-rowData :: [ResultColumn a] -> ColSpec a -> BenchName -> [PerfData]
-rowData resultColumns (ColSpec _ metric) benchName  = metrics
-  where
-  metrics = map (getMetric . M.lookup benchName . results) resultColumns
-  getMetric Nothing  = NoResult
-  getMetric (Just a) = maybe NoResult Raw (perf (metric a))
--}
-
 type NormFun a =(a -> Double) -> a -> a -> NormPerf
-normalizeNone :: RawPerf -> RawPerf -> PerfMonad RawPerf
-normalizeNone _ r = return r
-
 normalizePercent :: RawPerf -> RawPerf -> PerfMonad NormPerf
 normalizePercent = normalize normP
 
