@@ -32,7 +32,7 @@ renderTables rs@(baseline:_compares) fmt tableSpec =
   where
     render (c, t) = 
       c ++ "\n" ++
-      renderAs fmt (printf fmtString) id (pprPerfData (printUnits fmt)) table
+      renderAs fmt (printf fmtString) id (renderPerfData fmt) table
       where table = (Table rowHeader colHeader t)
     tables = map (\c -> (cName c , map (rowData rs c) benchNames)) tableSpec
     rowHeader = Group NoLine rowNames
@@ -52,7 +52,7 @@ renderSummaryTable [base, peak] fmt tableSpec =
   where
     render t =
       "Fibon Summary" ++ "\n" ++
-      renderAs fmt (printf fmtString) id (pprPerfData (printUnits fmt)) table
+      renderAs fmt (printf fmtString) id (renderPerfData fmt) table
       where table = (Table rowHeader colHeader t)
     summary = 
       map (\bm -> concatMap (\c -> rowData [peak] c bm) tableSpec) benchNames
@@ -64,13 +64,15 @@ renderSummaryTable [base, peak] fmt tableSpec =
     fmtString = "%"++(show . maximum $ map length benchNames)++"s"
 renderSummaryTable _ _ _ = ""
 
+renderPerfData :: OutputFormat -> (PerfData -> String)
+renderPerfData = pprPerfData . includeUnits
 
 rowData :: [ResultColumn a] -> ColSpec a -> BenchName -> [PerfData]
 rowData resultColumns (ColSpec _ metric) benchName  = metrics
   where
   metrics = map (getMetric . M.lookup benchName . results) resultColumns
   getMetric Nothing  = NoResult
-  getMetric (Just a) = perf (metric a)
+  getMetric (Just a) = maybe NoResult Raw (perf (metric a))
 
 
 type RenderFun rh ch td =  (rh -> String) -- ^ Row header renderer
@@ -87,8 +89,8 @@ renderAs (SimpleText sep) = Simple.render sep
 
 -- | Don't print units for outputs which are intended to be inputs to
 --   other analysis programs (like R or Excel)
-printUnits :: OutputFormat -> Bool
-printUnits (SimpleText _) = False
-printUnits Csv            = False
-printUnits _              = True
+includeUnits :: OutputFormat -> Bool
+includeUnits (SimpleText _) = False
+includeUnits Csv            = False
+includeUnits _              = True
 
