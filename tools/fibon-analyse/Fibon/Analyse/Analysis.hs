@@ -3,8 +3,11 @@ module Fibon.Analyse.Analysis (
   , runAnalysis
   , computeRows
   , Normalize(..)
+  , NormMethod
 )
 where
+import Data.List
+import Data.Maybe
 import qualified Data.Map        as M
 import Control.Monad.Error
 import Fibon.Result
@@ -70,18 +73,22 @@ type RowData = (RowName, [PerfData])
 type RowName    = String
 type TableError = String
 type PerfMonad  = Either TableError
+type NormMethod a = ResultColumn a -> Normalize a
 
 data Normalize a =
     NormPercent (ResultColumn a)
   | NormRatio   (ResultColumn a)
-  | NormNone
+  | NormNone    (ResultColumn a) -- ^ For uniform normalization use
 
 computeRows :: [(Normalize a, ResultColumn a)]
             -> [BenchName]
             -> TableSpec a
-            -> Either TableError [RowData]
-computeRows resultColumns benchs colSpecs =
-  mapM (computeOneRow resultColumns colSpecs) benchs
+            -> Either TableError ([RowData], [RowData])
+computeRows resultColumns benchs colSpecs = do
+  rows <- mapM (computeOneRow resultColumns colSpecs) benchs
+  let colData = transpose $ map snd rows
+  meanRow <- mapM summarize colData
+  return (rows,  [("mean", meanRow)])
 
 computeOneRow :: [(Normalize a, ResultColumn a)]
               -> [ColSpec a]
@@ -104,7 +111,7 @@ computeOneColumn bench (ColSpec _ metric) (normType, resultColumn) =
       case normType of
         NormPercent base -> normToBase base normalizePercent
         NormRatio   base -> normToBase base normalizeRatio
-        NormNone         -> return (Raw peak)
+        NormNone      _  -> return (Raw peak)
       where
         normToBase base normFun = maybe (return NoResult)
                                         (\b -> Norm `liftM` normFun b peak)
@@ -144,6 +151,18 @@ norm c f toDouble base peak =
   c (mkPointEstimate mkStddev (f (toDouble base) (toDouble peak)))
   where mkStddev = fromIntegral :: Int -> Double
 
+summarize :: [PerfData] -> PerfMonad PerfData
+summarize perfData =
+  case (normData, rawData) of
+    ([], []) -> return NoResult
+    (nd, []) -> (summarizeNorm nd) >>= return . Summary
+    ([], rd) -> (summarizeRaw  rd) >>= return . Summary
+    _        -> throwError "Mixed raw and norm results in column"
+  where
+    normData = getData (\p -> case p of Norm n -> Just n ; _ -> Nothing)
+    rawData  = getData (\p -> case p of Raw  r -> Just r ; _ -> Nothing)
+    getData  f = (catMaybes . map f) perfData
+
 summarizeRaw :: [RawPerf] -> PerfMonad SummaryPerf
 summarizeRaw rawPerfs =
   case (isTime rawPerfs, isSize rawPerfs) of
@@ -159,7 +178,7 @@ summarizeRaw' :: (Double -> a)            -- ^ rounding function
              -> [RawPerf]                -- ^ Performance numbers to summary
              -> PerfMonad SummaryPerf
 summarizeRaw' roundFun makeRaw rawPerfs =
-  return $ ArithMean (makeRaw (fmap roundFun (summarize mean vec)))
+  return $ ArithMean (makeRaw (fmap roundFun (computeSummary mean vec)))
   where
     vec = V.fromList (map rawPerfToDouble rawPerfs)
 
@@ -177,15 +196,15 @@ summarizeNorm' :: (Estimate Double -> NormPerf)
               -> [NormPerf]
               -> PerfMonad SummaryPerf
 summarizeNorm' makeNorm normPerfs =
-  return $ GeoMean (makeNorm (summarize geometricMean vec))
+  return $ GeoMean (makeNorm (computeSummary geometricMean vec))
   where
     vec = V.fromList (map normPerfToDouble normPerfs)
 
-summarize :: (Sample -> Double) -> Sample -> Estimate Double
-summarize sumF vec =
+computeSummary :: (Sample -> Double) -> Sample -> Estimate Double
+computeSummary sumF vec =
   Estimate {
       ePoint  = sumF vec
-    , eStddev = stdDev vec
+    , eStddev = stdDev vec -- TODO: this is wrong stddev for geoMean
     , eSize   = V.length vec
     , eCI     = Nothing
   }

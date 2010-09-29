@@ -16,8 +16,8 @@ main = do
   case concat `fmap` sequence mbResults of
     Nothing -> putStrLn "Error Parsing Results"
     Just rs -> do
-      putStrLn $ renderSummaryTable rs AsciiArt basicTable
-      putStrLn $ renderTables       rs AsciiArt basicTable
+      putStrLn $ renderSummaryTable rs NormPercent AsciiArt basicTable
+      putStrLn $ renderTables       rs NormPercent AsciiArt basicTable
 
 simpleAnalysis :: Analysis GhcStats
 simpleAnalysis  = Analysis {

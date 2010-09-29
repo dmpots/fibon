@@ -26,29 +26,29 @@ data OutputFormat =
 -- | Render a series of tables based on the 'TableSpec'
 --   A table is rendered for each column in the 'TableSpec'. The data for the
 --   columns are taken from the list of 'ResultColumn' passed to the function.
-renderTables :: [ResultColumn a] -> OutputFormat -> [ColSpec a] -> String
-renderTables [] _fmt _spec = ""
-renderTables rs@(baseline:compares) fmt tableSpec =
+renderTables :: [ResultColumn a] -> NormMethod a -> OutputFormat -> [ColSpec a] -> String
+renderTables [] _ _fmt _spec = ""
+renderTables rs@(baseline:compares) normMethod fmt tableSpec =
   unlines $ map render tableSpec
   where
     render colSpec =
       renderTable (cName colSpec) colNames columns fmt [colSpec]
     columns     = baselineCol : compareCols
-    baselineCol = (NormNone, baseline)
-    compareCols = [(NormPercent baseline, c) | c <- compares]
+    baselineCol = (NormNone baseline, baseline)
+    compareCols = [(normMethod baseline, c) | c <- compares]
     colNames = map resultLabel rs
 
 
 -- | Render a summary table comparing the "base" to a "peak" result.
 --   The table is rendered with a column of "peak" data for each column listed
 --   in the 'TableSpec'.
-renderSummaryTable::[ResultColumn a] -> OutputFormat -> TableSpec a -> String
-renderSummaryTable [base, peak] fmt tableSpec = 
+renderSummaryTable::[ResultColumn a] -> NormMethod a -> OutputFormat -> TableSpec a -> String
+renderSummaryTable [base, peak] normMethod fmt tableSpec =
   renderTable "Fibon Summary" colNames columns fmt tableSpec
   where
-    columns = [(NormPercent base, peak)]
+    columns = [(normMethod base, peak)]
     colNames = map cName tableSpec
-renderSummaryTable _ _ _ = ""
+renderSummaryTable _ _ _ _ = ""
 
 -- | Renders a table. The number of columns is
 --   length (tableData) * length (TableSpec).
@@ -66,16 +66,26 @@ renderTable tableName columnNames rs@(aResult:_) fmt tableSpec =
       tableName ++ errMsg ++ "\n" ++
       renderAs fmt (printf fmtString) id (renderPerfData fmt) tab
       where tab = (Table rowHeader colHeader t)
-    (errMsg, (rowLabels, table)) =
+    (errMsg, dataRowLabels, summaryRowLabels, table) =
       case computeRows rs benchNames tableSpec of
-        Left err   -> (err, ([],[[]]))
-        Right rows -> ("", unzip rows)
-    rowHeader = Group NoLine rowNames
+        Left err   -> (err, [],[],[[]])
+        Right rows -> unzipRows rows
+    unzipRows (dataRows, summRows) =
+      let (dl,dr) = unzip dataRows
+          (sl,sr) = unzip summRows
+      in
+      (noErrorMsg, dl,sl, dr ++ sr)
+    rowLabels = dataRowLabels ++ summaryRowLabels
+    rowHeader = Group SingleLine [
+                  (Group NoLine dataRowNames),(Group NoLine summaryRowNames)
+                ]
     colHeader = Group NoLine colNames
-    rowNames = map Header rowLabels
+    dataRowNames = map Header dataRowLabels
+    summaryRowNames = map Header summaryRowLabels
     colNames = map Header columnNames
     benchNames = M.keys (results . snd $ aResult)
     fmtString = "%"++(show . maximum $ map length rowLabels)++"s"
+    noErrorMsg = ""
 
 
 renderPerfData :: OutputFormat -> (PerfData -> String)
