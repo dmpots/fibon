@@ -87,8 +87,18 @@ computeRows :: [(Normalize a, ResultColumn a)]
 computeRows resultColumns benchs colSpecs = do
   rows <- mapM (computeOneRow resultColumns colSpecs) benchs
   let colData = transpose $ map snd rows
-  meanRow <- mapM summarize colData
-  return (rows,  [("mean", meanRow)])
+      doSumm  how = mapM (summarize how) colData
+  minRow   <- doSumm Min
+  meanRow  <- doSumm GeoMean
+  arithRow <- doSumm ArithMean
+  maxRow   <- doSumm Max
+  let sumRows = [
+          ("min", minRow)
+        , ("geomean", meanRow)
+        , ("arithmean", arithRow)
+        , ("max", maxRow)
+        ]
+  return (rows, sumRows)
 
 computeOneRow :: [(Normalize a, ResultColumn a)]
               -> [ColSpec a]
@@ -111,10 +121,12 @@ computeOneColumn bench (ColSpec _ metric) (normType, resultColumn) =
       case normType of
         NormPercent base -> normToBase base normalizePercent
         NormRatio   base -> normToBase base normalizeRatio
-        NormNone      _  -> return (Raw peak)
+        NormNone      _  -> return (mkRaw peak)
       where
+        mkRaw  = Basic . Raw
+        mkNorm = Basic . Norm
         normToBase base normFun = maybe (return NoResult)
-                                        (\b -> Norm `liftM` normFun b peak)
+                                        (\b -> mkNorm `liftM` normFun b peak)
                                         (getRawPerf base)
     getRawPerf rc = perf $ fmap metric ((M.lookup bench . results) rc)
 
@@ -151,61 +163,68 @@ norm c f toDouble base peak =
   c (mkPointEstimate mkStddev (f (toDouble base) (toDouble peak)))
   where mkStddev = fromIntegral :: Int -> Double
 
-summarize :: [PerfData] -> PerfMonad PerfData
-summarize perfData =
+summarize :: Summary -> [PerfData] -> PerfMonad PerfData
+summarize how perfData =
   case (normData, rawData) of
     ([], []) -> return NoResult
-    (nd, []) -> (summarizeNorm nd) >>= return . Summary
-    ([], rd) -> (summarizeRaw  rd) >>= return . Summary
+    (nd, []) -> summarizeNorm how nd
+    ([], rd) -> summarizeRaw  how rd
     _        -> throwError "Mixed raw and norm results in column"
   where
-    normData = getData (\p -> case p of Norm n -> Just n ; _ -> Nothing)
-    rawData  = getData (\p -> case p of Raw  r -> Just r ; _ -> Nothing)
+    normData = getData (\p -> case p of Basic (Norm n) -> Just n ; _ -> Nothing)
+    rawData  = getData (\p -> case p of Basic (Raw  r) -> Just r ; _ -> Nothing)
     getData  f = (catMaybes . map f) perfData
 
-summarizeRaw :: [RawPerf] -> PerfMonad SummaryPerf
-summarizeRaw rawPerfs =
+summarizeRaw :: Summary -> [RawPerf] -> PerfMonad PerfData
+summarizeRaw how rawPerfs =
   case (isTime rawPerfs, isSize rawPerfs) of
-    (True, _) -> summarizeRaw' ExecTime          RawTime rawPerfs
-    (_, True) -> summarizeRaw' (MemSize . round) RawSize rawPerfs
+    (True, _) -> summarizeRaw' how ExecTime          RawTime rawPerfs
+    (_, True) -> summarizeRaw' how (MemSize . round) RawSize rawPerfs
     _         -> throwError "Can only summarize column with time or size"
   where
     isTime = all (\r -> case r of RawTime _ -> True; RawSize _ -> False)
     isSize = all (\r -> case r of RawSize _ -> True; RawTime _ -> False)
 
-summarizeRaw' :: (Double -> a)            -- ^ rounding function
+summarizeRaw' :: Summary                 -- ^ what kind of summary
+             -> (Double -> a)            -- ^ rounding function
              -> (Estimate a -> RawPerf)  -- ^ RawPerf constructor
              -> [RawPerf]                -- ^ Performance numbers to summary
-             -> PerfMonad SummaryPerf
-summarizeRaw' roundFun makeRaw rawPerfs =
-  return $ ArithMean (makeRaw (fmap roundFun (computeSummary mean vec)))
+             -> PerfMonad PerfData
+summarizeRaw' how roundFun makeRaw rawPerfs =
+  return $ Summary how (Raw (makeRaw (fmap roundFun (computeSummary how vec))))
   where
     vec = V.fromList (map rawPerfToDouble rawPerfs)
 
-summarizeNorm :: [NormPerf] -> PerfMonad SummaryPerf
-summarizeNorm normPerfs =
+summarizeNorm :: Summary -> [NormPerf] -> PerfMonad PerfData
+summarizeNorm how normPerfs =
   case (isPercent normPerfs, isRatio normPerfs) of
-    (True, _) -> summarizeNorm' Percent normPerfs
-    (_, True) -> summarizeNorm' Ratio   normPerfs
+    (True, _) -> summarizeNorm' how Percent normPerfs
+    (_, True) -> summarizeNorm' how Ratio   normPerfs
     _         -> throwError "Can only summarize column with percent or ratio"
     where
       isPercent = all (\r -> case r of Percent _ -> True;  Ratio _ -> False)
       isRatio   = all (\r -> case r of Percent _ -> False; Ratio _ -> True)
 
-summarizeNorm' :: (Estimate Double -> NormPerf)
+summarizeNorm' :: Summary
+              -> (Estimate Double -> NormPerf)
               -> [NormPerf]
-              -> PerfMonad SummaryPerf
-summarizeNorm' makeNorm normPerfs =
-  return $ GeoMean (makeNorm (computeSummary geometricMean vec))
+              -> PerfMonad PerfData
+summarizeNorm' how makeNorm normPerfs =
+  return $ Summary how (Norm (makeNorm (computeSummary how vec)))
   where
     vec = V.fromList (map normPerfToDouble normPerfs)
 
-computeSummary :: (Sample -> Double) -> Sample -> Estimate Double
-computeSummary sumF vec =
+computeSummary :: Summary -> Sample -> Estimate Double
+computeSummary summaryType vec =
   Estimate {
-      ePoint  = sumF vec
+      ePoint  = sumF summaryType vec
     , eStddev = stdDev vec -- TODO: this is wrong stddev for geoMean
     , eSize   = V.length vec
     , eCI     = Nothing
   }
+  where
+  sumF ArithMean = mean
+  sumF GeoMean   = geometricMean
+  sumF Max       = V.maximum
+  sumF Min       = V.minimum
 

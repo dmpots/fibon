@@ -10,7 +10,8 @@ module Fibon.Analyse.Metrics (
   , pprPerfData
   , RawPerf(..)
   , NormPerf(..)
-  , SummaryPerf(..)
+  , BasicPerf(..)
+  , Summary(..)
   , mkPointEstimate
   , rawPerfToDouble
   , normPerfToDouble
@@ -84,9 +85,13 @@ instance Metric a => Metric (Maybe a) where
 
 data PerfData =
     NoResult
-  | Raw RawPerf
+  | Basic BasicPerf
+  | Summary Summary BasicPerf
+  deriving(Read, Show)
+
+data BasicPerf =
+    Raw RawPerf
   | Norm NormPerf
-  | Summary SummaryPerf
   deriving(Read, Show)
 
 data RawPerf =
@@ -99,16 +104,21 @@ data NormPerf =
   | Ratio   (Estimate Double) -- ^ (base / ref)
   deriving(Read, Show)
 
-data SummaryPerf =
-    GeoMean   NormPerf
-  | ArithMean RawPerf
+data Summary =
+    Min
+  | GeoMean
+  | ArithMean
+  | Max
   deriving(Read, Show)
 
 pprPerfData :: Bool -> PerfData -> String
 pprPerfData _ NoResult    = "--"
-pprPerfData u (Raw  r)    = pprRawPerf  u r
-pprPerfData u (Norm n)    = pprNormPerf u n
-pprPerfData u (Summary s) = pprSummaryPerf u s
+pprPerfData u (Basic b) = pprBasicPerf u b
+pprPerfData u (Summary _ s) = pprBasicPerf u s
+
+pprBasicPerf :: Bool -> BasicPerf -> String
+pprBasicPerf u (Raw  r)    = pprRawPerf  u r
+pprBasicPerf u (Norm n)    = pprNormPerf u n
 
 pprNormPerf :: Bool -> NormPerf -> String
 pprNormPerf u (Percent d) =
@@ -136,10 +146,10 @@ pprRawPerf u (RawSizeInterval e) = printf "%d%s%s"
 pprPlusMinus :: Real b => Estimate a -> (a -> b) -> String
 pprPlusMinus e f = printf "%c%0.2d" (chr 0xB1) ((realToFrac spread)::Double)
   where spread = abs ((f . ePoint) e) - ((f . eLowerBound) e)
--}
 pprSummaryPerf :: Bool -> SummaryPerf -> String
-pprSummaryPerf u (GeoMean n)   = pprNormPerf u n
-pprSummaryPerf u (ArithMean r) = pprRawPerf  u r
+pprSummaryPerf u (GeoMean n)   = pprBasicPerf u n
+pprSummaryPerf u (ArithMean r) = pprBasicPerf u r
+-}
 
 pprUnit :: Bool -> String -> String
 pprUnit True s = s

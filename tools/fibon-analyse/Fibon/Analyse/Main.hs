@@ -33,15 +33,3 @@ simpleAnalysis  = Analysis {
 
       }
 
-
---t1 = basicTable
---
---t3 = [ColumnSpec "time" (Just        . compileTime),
---      ColumnSpec "gc"   (fmap d      . extraStats)
---      ]
-
--- foo :: [MetricFormat]
--- foo =
---   map (\(Column _ f, r) -> toFormat $ fromJust (f r)) (zip t1 results)
---   where results = concat $ map M.elems $ parseResults (const Nothing) (B.empty) 
--- 
