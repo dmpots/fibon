@@ -3,4 +3,4 @@
 	url = dmp4866@orion.cs.rice.edu:repos/fibon-benchmarks
 [submodule "config"]
 	path = config
-	url = dmp4866@orion.cs.rice.edu:repos/fibon-config
+	url = git://github.com/dmpots/fibon-config.git
