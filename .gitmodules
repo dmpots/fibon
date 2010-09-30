@@ -1,6 +1,6 @@
 [submodule "benchmarks/Fibon/Benchmarks"]
 	path = benchmarks/Fibon/Benchmarks
-	url = dmp4866@orion.cs.rice.edu:repos/fibon-benchmarks
+	url = git://github.com/dmpots/fibon-benchmarks.git
 [submodule "config"]
 	path = config
 	url = git://github.com/dmpots/fibon-config.git
