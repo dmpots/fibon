@@ -1,22 +1,72 @@
 -- The name of the package.
 Name:                fibon
-Version:             1.0.0
+Version:             0.1.0
 Synopsis:            A reworking of the classic nofib benchmark suite
--- Description:         
+Description:         
+  Fibon is a set of tools for running and analyzing benchmark programs.
+  The fibon package contains the tools for benchmarking, but not the
+  benchmarks themselves. The package will build, but will not have any
+  benchmarks to run. A set of benchmarks can be found at
+
+  http://github.com/dmpots/fibon-benchmarks
+
+  Installing the cabal package will get you the following tools
+
+    * fibon - runs the benchmarks
+    * fibon-analyse - analyses the results of a benchmark run
+    * fibon-init - generate a benchmark description from a cabal file
+
+  See http://github.com/dmpots/fibon/wiki for more details
 License:             BSD3
 License-file:        LICENSE
 Author:              David M Peixotto
 Maintainer:          dmp@rice.edu
 Stability:           Experimental
-Category:            Testing
+Category:            Benchmarking
+Homepage:            http://github.com/dmpots/fibon/wiki
+Bug-reports:         http://github.com/dmpots/fibon/issues
 Build-type:          Custom
-
--- Extra files to be distributed with the package, such as examples or
--- a README.
---Extra-source-files:
-
--- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.8
+
+Extra-source-files: README
+                    FindBench.hs
+                    FindConfig.hs
+                    lib/Fibon/BenchmarkInstance.hs
+                    lib/Fibon/ConfigMonad.hs
+                    lib/Fibon/FlagConfig.hs
+                    lib/Fibon/InputSize.hs
+                    lib/Fibon/Result.hs
+                    lib/Fibon/Timeout.hs
+                    tools/fibon-analyse/Fibon/Analyse/Analysis.hs
+                    tools/fibon-analyse/Fibon/Analyse/ExtraStats/GhcStats.hs
+                    tools/fibon-analyse/Fibon/Analyse/ExtraStats.hs
+                    tools/fibon-analyse/Fibon/Analyse/Main.hs
+                    tools/fibon-analyse/Fibon/Analyse/Metrics.hs
+                    tools/fibon-analyse/Fibon/Analyse/Output.hs
+                    tools/fibon-analyse/Fibon/Analyse/Parse.hs
+                    tools/fibon-analyse/Fibon/Analyse/Result.hs
+                    tools/fibon-analyse/Fibon/Analyse/Tables.hs
+                    tools/fibon-init/Main.hs
+                    tools/fibon-run/Fibon/Run/Actions.hs
+                    tools/fibon-run/Fibon/Run/BenchmarkBundle.hs
+                    tools/fibon-run/Fibon/Run/BenchmarkRunner.hs
+                    tools/fibon-run/Fibon/Run/CommandLine.hs
+                    tools/fibon-run/Fibon/Run/Config/Default.hs
+                    tools/fibon-run/Fibon/Run/Config/Local.hs
+                    tools/fibon-run/Fibon/Run/Config.hs
+                    tools/fibon-run/Fibon/Run/Log.hs
+                    tools/fibon-run/Fibon/Run/Main.hs
+                    tools/fibon-run/Fibon/Run/Manifest.hs
+                    tools/fibon-run/Fibon/Run/SysTools.hs
+
+source-repository head
+  type:     git
+  location: git://github.com/dmpots/fibon.git
+
+source-repository this
+  type:     git
+  location: git://github.com/dmpots/fibon.git
+  tag:      v0.1.0
 
 Flag analyse
   description: Build the fibon-analyse program
@@ -71,3 +121,5 @@ Executable fibon-analyse
                     , vector     == 0.6.*
                     , statistics == 0.6.*
   extensions: CPP
+
+

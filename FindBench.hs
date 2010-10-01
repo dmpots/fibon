@@ -31,6 +31,7 @@ findLocalBenchmarks baseDir = do
   when (null allGroups) printNoBenchmarksWarning
   putStrLn $ "... found ("++ (show.length$ allBms)++")"
   putStrLn $ "  writing benchmark manifest to "++outFile
+  createDirectoryIfMissing True (baseDir </> "Fibon")
   h <- openFile outFile WriteMode
   hPutStrLn h moduleHeader
   hPutStrLn h $ moduleImports (join "." benchmarksModule) qualifiedBms
