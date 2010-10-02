@@ -108,5 +108,6 @@ renderAs (SimpleText sep) = Simple.render sep
 includeUnits :: OutputFormat -> Bool
 includeUnits (SimpleText _) = False
 includeUnits Csv            = False
+includeUnits Latex          = False
 includeUnits _              = True
 
