@@ -2,7 +2,7 @@ module FindBench(findLocalBenchmarks) where
 --module Main where
 
 import Control.Exception
-import Control.Monad (filterM, when)
+import Control.Monad (filterM, when, liftM)
 import Data.List
 import System.Directory
 import System.FilePath
@@ -21,14 +21,13 @@ findLocalBenchmarks :: FilePath -> IO ()
 findLocalBenchmarks baseDir = do
   let searchPath = join ([pathSeparator]) (baseDir : benchmarksModule)
   putStr $ "Looking for benchmarks in "++searchPath
-  groups <- bmGroups searchPath
+  groups <- sort `liftM` bmGroups searchPath
   bms    <- bmInstances searchPath groups
-  let allGroups    = sort            groups
-      allBms       = (sort . concat) bms
+  let allBms       = (sort . concat) bms
       qualifiedBms = 
-        concat $ zipWith (\g bs -> map ((,)g) (sort bs)) allGroups bms
+        concat $ zipWith (\g bs -> map ((,)g) (sort bs)) groups bms
       outFile      = searchPath ++ ".hs"
-  when (null allGroups) printNoBenchmarksWarning
+  when (null groups) printNoBenchmarksWarning
   putStrLn $ "... found ("++ (show.length$ allBms)++")"
   putStrLn $ "  writing benchmark manifest to "++outFile
   createDirectoryIfMissing True (baseDir </> "Fibon")
@@ -38,7 +37,7 @@ findLocalBenchmarks baseDir = do
   hPutStrLn h ""
   hPutStrLn h $ benchDataDecl allBms
   hPutStrLn h ""
-  hPutStrLn h $ groupDataDecl allGroups
+  hPutStrLn h $ groupDataDecl groups
   hPutStrLn h ""
   hPutStrLn h $ allBenchmarksDecl allBms
   hPutStrLn h ""
