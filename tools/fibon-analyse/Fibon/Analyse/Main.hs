@@ -1,9 +1,7 @@
 module Main (main) where
-import Fibon.Result
+import Fibon.Analyse.AnalysisRoutines
 import Fibon.Analyse.Analysis
 import Fibon.Analyse.CommandLine
-import Fibon.Analyse.ExtraStats
-import Fibon.Analyse.Metrics
 import Fibon.Analyse.Output
 import Fibon.Analyse.Result
 import Fibon.Analyse.Tables
@@ -13,7 +11,7 @@ import System.Exit
 main :: IO ()
 main = do
   (opts, files) <- getCommandLine
-  mbResults <- mapM (\f -> runAnalysis simpleAnalysis f) files
+  mbResults <- mapM (\f -> runAnalysis noAnalysis f) files
   case concat `fmap` sequence mbResults of
     Nothing -> putStrLn "Error Parsing Results"
     Just rs -> do
@@ -22,19 +20,6 @@ main = do
       putStrLn $ renderSummaryTable rs norm fmt basicTable
       putStrLn $ renderTables       rs norm fmt basicTable
 
-simpleAnalysis :: Analysis GhcStats
-simpleAnalysis  = Analysis {
-      fibonAnalysis  = return . getStats
-    , extraParser    = const Nothing
-    , extraAnalysis  = return . head
-  }
-  where 
-    getStats fr = FibonStats {
-          compileTime = Single $ ExecTime ((buildTime . buildData) fr)
-        , binarySize  = Single $ MemSize 0 
-        , wallTime    = Single $ ExecTime ((meanTime . summary . runData) fr)
-
-      }
 
 getCommandLine :: IO (Opt, [FilePath])
 getCommandLine = do
