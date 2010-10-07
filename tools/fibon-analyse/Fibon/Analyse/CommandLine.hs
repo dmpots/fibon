@@ -51,9 +51,11 @@ options = [
     ,
     Option ['r'] ["raw"]
       (ReqArg (\a mbOpt -> process mbOpt (\o ->
+        let noNorm = o {optNormalizeBy = ByNone} in
         case a of
-          "\\t"     -> setFormat (SimpleText "\t") o
-          _         -> setFormat (SimpleText a) o)) "sep")
+          "\\t"     -> setFormat (SimpleText "\t") noNorm
+          _         -> setFormat (SimpleText a)    noNorm))
+        "sep")
       "raw data with seperator"
     ,
     Option ['n'] ["normalize"]
