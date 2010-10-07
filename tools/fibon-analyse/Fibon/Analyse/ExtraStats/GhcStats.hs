@@ -4,7 +4,6 @@ module Fibon.Analyse.ExtraStats.GhcStats(
 )
 where
 
-import qualified Data.ByteString as B
 import Fibon.Analyse.Metrics
 
 data GhcStats = GhcStats {
@@ -29,7 +28,7 @@ data GhcStats = GhcStats {
 
 
 
-parseMachineReadableStats :: B.ByteString -> Maybe GhcStats
+parseMachineReadableStats :: String -> Maybe GhcStats
 parseMachineReadableStats _ = Nothing
 
 

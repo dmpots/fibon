@@ -11,18 +11,13 @@ import Data.Maybe
 import qualified Data.Map        as M
 import Control.Monad.Error
 import Fibon.Result
+import Fibon.Analyse.AnalysisRoutines
 import Fibon.Analyse.Parse
 import Fibon.Analyse.Result
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Tables
 import Statistics.Sample
 import qualified Data.Vector.Unboxed as V
-
-data Analysis a = Analysis {
-      fibonAnalysis :: (FibonResult -> IO FibonStats)-- ^ RunData analyser
-    , extraParser   :: (String  -> Maybe a)          -- ^ extraStats parser
-    , extraAnalysis :: ([a]     -> IO    a)          -- ^ extraStats analyser
-  }
 
 runAnalysis :: Analysis a -> FilePath -> IO (Maybe [ResultColumn a])
 runAnalysis analysis file = do
