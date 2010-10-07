@@ -37,7 +37,9 @@ Extra-source-files: README
                     lib/Fibon/InputSize.hs
                     lib/Fibon/Result.hs
                     lib/Fibon/Timeout.hs
+                    tools/fibon-analyse/Fibon/Analyse/AnalysisRoutines.hs
                     tools/fibon-analyse/Fibon/Analyse/Analysis.hs
+                    tools/fibon-analyse/Fibon/Analyse/CommandLine.hs
                     tools/fibon-analyse/Fibon/Analyse/ExtraStats/GhcStats.hs
                     tools/fibon-analyse/Fibon/Analyse/ExtraStats.hs
                     tools/fibon-analyse/Fibon/Analyse/Main.hs
