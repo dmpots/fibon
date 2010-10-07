@@ -1,5 +1,6 @@
 module Fibon.Analyse.AnalysisRoutines(
     noAnalysis
+  , ghcStatsAnalysis
   , Analysis(..)
 )
 where
