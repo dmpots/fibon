@@ -29,6 +29,7 @@ import Fibon.Run.Config
 import System.FilePath
 import System.IO
 import System.Process
+import System.Info
 
 
 data BenchmarkBundle = BenchmarkBundle {
@@ -88,7 +89,8 @@ pathToExeRunDir :: BenchmarkBundle -> FilePath
 pathToExeRunDir = pathToExeBuildDir
 
 pathToExe :: BenchmarkBundle -> FilePath
-pathToExe bb = (pathToExeBuildDir bb) </> (exeName.benchDetails $ bb)
+pathToExe bb = (pathToExeBuildDir bb) </> (exeName.benchDetails $ bb)++ext
+  where ext = if System.Info.os == "mingw32" then ".exe" else ""
 
 pathToSizeInputFiles :: BenchmarkBundle -> FilePath
 pathToSizeInputFiles = pathToSizeDataFiles "input"
