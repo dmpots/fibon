@@ -1,3 +1,7 @@
+Cleanup Summary Stats
+  * Remove the statsSummary field from RunSummary type
+    It is useless and doubling the size of Result files
+
 Add Benchmarks
   + Parallel
     * http://hackage.haskell.org/package/hlcm
