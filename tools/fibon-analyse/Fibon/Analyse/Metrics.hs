@@ -60,9 +60,9 @@ data Measurement a =
   deriving (Read, Show)
 
 mkPointEstimate :: (Num b) => (b -> a) -> a -> Estimate a
-mkPointEstimate mkA a = Estimate {
+mkPointEstimate toA a = Estimate {
       ePoint  = a
-    , eStddev = mkA 0
+    , eStddev = toA 0
     , eSize   = 1
     , eCI     = Nothing
   }

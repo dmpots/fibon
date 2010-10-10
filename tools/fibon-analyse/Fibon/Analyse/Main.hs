@@ -11,14 +11,14 @@ import System.Exit
 main :: IO ()
 main = do
   (opts, files) <- getCommandLine
-  mbResults <- mapM (\f -> runAnalysis noAnalysis f) files
+  mbResults <- mapM (\f -> runAnalysis ghcStatsAnalysis f) files
   case concat `fmap` sequence mbResults of
     Nothing -> putStrLn "Error Parsing Results"
     Just rs -> do
       let fmt  = optOutputFormat opts
       let norm = getNormFun opts
-      putStrLn $ renderSummaryTable rs norm fmt basicTable
-      putStrLn $ renderTables       rs norm fmt basicTable
+      putStrLn $ renderSummaryTable rs norm fmt ghcStatsSummaryTable
+      putStrLn $ renderTables       rs norm fmt ghcStatsSummaryTable
 
 
 getCommandLine :: IO (Opt, [FilePath])
