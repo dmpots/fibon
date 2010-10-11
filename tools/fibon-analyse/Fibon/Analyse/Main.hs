@@ -11,7 +11,7 @@ import System.Exit
 main :: IO ()
 main = do
   (opts, files) <- getCommandLine
-  mbResults <- mapM (\f -> runAnalysis ghcStatsAnalysis f) files
+  mbResults <- mapM (runAnalysis ghcStatsAnalysis) files
   case concat `fmap` sequence mbResults of
     Nothing -> putStrLn "Error Parsing Results"
     Just rs -> do

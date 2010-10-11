@@ -31,11 +31,11 @@ noAnalysis  = Analysis {
 
 ghcStatsAnalysis :: Analysis GhcStats
 ghcStatsAnalysis = noAnalysis {
-      extraParser = parseGhcStats
+      extraParser   = parseGhcStats
+    , extraAnalysis = return . ghcStatsSummary
   }
-
+--TODO: make extraAnalysis for GhcStats acutally do some analysis
 --makeAnalysis :: Analysis a -> (String -> Maybe b) -> Analysis b
-
 
 
 

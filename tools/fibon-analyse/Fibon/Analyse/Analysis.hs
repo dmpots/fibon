@@ -15,8 +15,8 @@ import Fibon.Analyse.AnalysisRoutines
 import Fibon.Analyse.Parse
 import Fibon.Analyse.Result
 import Fibon.Analyse.Metrics
+import Fibon.Analyse.Statistics
 import Fibon.Analyse.Tables
-import Statistics.Sample
 import qualified Data.Vector.Unboxed as V
 
 runAnalysis :: Analysis a -> FilePath -> IO (Maybe [ResultColumn a])
@@ -208,18 +208,3 @@ summarizeNorm' how makeNorm normPerfs =
   return $ Summary how (Norm (makeNorm (computeSummary how vec)))
   where
     vec = V.fromList (map normPerfToDouble normPerfs)
-
-computeSummary :: Summary -> Sample -> Estimate Double
-computeSummary summaryType vec =
-  Estimate {
-      ePoint  = sumF summaryType vec
-    , eStddev = stdDev vec -- TODO: this is wrong stddev for geoMean
-    , eSize   = V.length vec
-    , eCI     = Nothing
-  }
-  where
-  sumF ArithMean = mean
-  sumF GeoMean   = geometricMean
-  sumF Max       = V.maximum
-  sumF Min       = V.minimum
-

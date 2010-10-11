@@ -1,11 +1,14 @@
 module Fibon.Analyse.ExtraStats.GhcStats(
     GhcStats(..)
   , parseMachineReadableStats
+  , summarizeGhcStats
 )
 where
 
 import Control.Monad
+import qualified Data.Vector.Unboxed as V
 import Fibon.Analyse.Metrics
+import Fibon.Analyse.Statistics as Statistics
 
 data GhcStats = GhcStats {
       bytesAllocated          :: Measurement MemSize
@@ -60,7 +63,6 @@ parseMachineReadableStats s = do
     , mutatorWallSeconds      = mutW
     , gcCPUSeconds            = gcC
     , gcWallSeconds           = gcW
-    -- derived metrics
     , ghcCpuTime              = ghcC
     , ghcWallTime             = ghcW
   }
@@ -84,3 +86,40 @@ addM :: Num a => Measurement a -> Measurement a -> Maybe (Measurement a)
 addM (Single a) (Single b) = Just $ Single (a+b)
 addM _ _ = Nothing
 
+
+--
+-- Analysis Functions
+--
+summarizeGhcStats :: [GhcStats] -> GhcStats
+summarizeGhcStats stats =
+  GhcStats {
+      bytesAllocated          = sumMem  bytesAllocated
+    , numGCs                  = sumMem  numGCs
+    , averageBytesUsed        = sumMem  averageBytesUsed
+    , maxBytesUsed            = sumMem  maxBytesUsed
+    , numByteUsageSamples     = sumMem  numByteUsageSamples
+    , peakMegabytesAllocated  = sumMem  peakMegabytesAllocated
+    , initCPUSeconds          = sumTime initCPUSeconds
+    , initWallSeconds         = sumTime initWallSeconds
+    , mutatorCPUSeconds       = sumTime mutatorCPUSeconds
+    , mutatorWallSeconds      = sumTime mutatorWallSeconds
+    , gcCPUSeconds            = sumTime gcCPUSeconds
+    , gcWallSeconds           = sumTime gcWallSeconds
+    , ghcCpuTime              = sumTime ghcCpuTime
+    , ghcWallTime             = sumTime ghcWallTime
+  }
+  where
+    sumMem  f = Interval $ summarize stats fromIntegral round f
+    sumTime f = Interval $ summarize stats fromExecTime ExecTime f
+
+summarize :: [GhcStats]                   -- ^ Stats to summarize
+          -> (a -> Double)                -- ^ Conversion to double
+          -> (Double -> a)                -- ^ Conversion back from double
+          -> (GhcStats -> Measurement a)  -- ^ Field accessor
+          -> Estimate a
+summarize stats toDouble toMeasurement f =
+  fmap toMeasurement $ Statistics.computeSummary ArithMean rawNums
+  where
+    rawNums = V.fromList $ map (getD . f) stats
+    getD (Single m)   = toDouble m
+    getD (Interval e) = (toDouble . ePoint) e

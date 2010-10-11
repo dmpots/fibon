@@ -11,7 +11,6 @@ module Fibon.Analyse.Metrics (
   , RawPerf(..)
   , NormPerf(..)
   , BasicPerf(..)
-  , Summary(..)
   , mkPointEstimate
   , rawPerfToDouble
   , normPerfToDouble
@@ -19,40 +18,13 @@ module Fibon.Analyse.Metrics (
 where
 
 import Data.Word
+import Fibon.Analyse.Statistics
 import Text.Printf
 
 newtype MemSize    = MemSize  {fromMemSize  :: Word64}
-  deriving(Eq, Num, Read, Show)
+  deriving(Eq, Read, Show, Num, Real, Enum, Ord, Integral)
 newtype ExecTime   = ExecTime {fromExecTime :: Double}
-  deriving(Eq, Num, Read, Show)
-
-data Estimate a = Estimate {
-      ePoint  :: !a
-    , eStddev :: !a
-    , eSize   :: !Int
-    , eCI     :: Maybe (ConfidenceInterval a)
-  }
-  deriving (Read, Show)
-
-data ConfidenceInterval a = ConfidenceInterval {
-      eLowerBound       :: !a
-    , eUpperBound       :: !a
-    , eConfidenceLevel  :: !Double
-}
-  deriving (Read, Show)
-
-instance Functor Estimate where
-  fmap f e = e {
-      ePoint  = f (ePoint e)
-    , eStddev = f (eStddev e)
-    , eCI     = maybe Nothing (Just . fmap f) (eCI e)
-  }
-
-instance Functor ConfidenceInterval where
-  fmap f c = c {
-      eLowerBound = f (eLowerBound c)
-    , eUpperBound = f (eUpperBound c)
-  }
+  deriving(Eq, Read, Show, Num, Real, Enum, Ord)
 
 data Measurement a = 
     Single   a
@@ -102,13 +74,6 @@ data RawPerf =
 data NormPerf =
     Percent (Estimate Double) -- ^ (ref  / base) * 100
   | Ratio   (Estimate Double) -- ^ (base / ref)
-  deriving(Read, Show)
-
-data Summary =
-    Min
-  | GeoMean
-  | ArithMean
-  | Max
   deriving(Read, Show)
 
 pprPerfData :: Bool -> PerfData -> String
