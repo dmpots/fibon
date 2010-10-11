@@ -6,9 +6,10 @@ module Fibon.Analyse.AnalysisRoutines(
 where
 
 import Fibon.Result
-import Fibon.Analyse.Result
-import Fibon.Analyse.Metrics
 import Fibon.Analyse.ExtraStats
+import Fibon.Analyse.Metrics
+import Fibon.Analyse.Parse
+import Fibon.Analyse.Result
 
 data Analysis a = Analysis {
       fibonAnalysis :: (FibonResult -> IO FibonStats)-- ^ RunData analyser
@@ -25,9 +26,11 @@ noAnalysis  = Analysis {
   where 
     getStats fr = FibonStats {
           compileTime = Single $ ExecTime ((buildTime . buildData) fr)
-        , binarySize  = Single $ MemSize 0 
+        , binarySize  = Single $ getSize (sizeData fr)
         , wallTime    = Single $ ExecTime ((meanTime . summary . runData) fr)
       }
+    getSize s = maybe (MemSize 0) MemSize (parseBinarySize s)
+    sizeData  = buildSize . buildData
 
 ghcStatsAnalysis :: Analysis GhcStats
 ghcStatsAnalysis = noAnalysis {

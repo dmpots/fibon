@@ -1,16 +1,20 @@
 module Fibon.Analyse.Parse(
     GhcStats(..)
   , parseFibonResults
+  , parseBinarySize
 )
 where
 
+import Data.Char
 import qualified Data.Map        as M
 import qualified Data.Text       as T
 import qualified Data.Text.IO    as T
+import Data.Word
 import Fibon.Result
 import Fibon.Analyse.ExtraStats
 import Fibon.Analyse.Result
 import System.FilePath
+import Text.Regex
 
 
 parseFibonResults :: FilePath  -- ^ input file
@@ -40,4 +44,25 @@ groupResults = foldr grouper M.empty
   grouper   r = M.insertWith (++)  (benchType r) [r]
   benchType r = dropWhile (/= '-') (benchName r)
 
+
+-- | Parses the output of the @size@ command.
+--   The output is of the form:
+--
+--    text\t   data\t    bss\t    dec\t    hex
+--    817842\t  49536\t  48136\t 915514\t  df83a
+--
+parseBinarySize :: String -> Maybe Word64
+parseBinarySize s =
+  case lines s of
+    [header, sizes] ->
+      let keys   = splitRegex sp (dropWhile isSpace header)
+          values = splitRegex sp (dropWhile isSpace sizes)
+      in
+          lookup "dec" (zip keys values) >>= mbParse
+    _ -> Nothing
+    where
+    mbParse w = case reads w of [(size,_)] -> Just size; _ -> Nothing
+
+sp :: Regex
+sp = mkRegex "[ \t]+"
 

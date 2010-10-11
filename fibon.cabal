@@ -122,6 +122,7 @@ Executable fibon-analyse
                     , tabular    == 0.2.*
                     , vector     == 0.6.*
                     , statistics == 0.6.*
+                    , regex-compat == 0.93.*
   extensions: CPP
 
 
