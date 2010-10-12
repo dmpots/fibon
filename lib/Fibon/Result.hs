@@ -7,6 +7,7 @@ module Fibon.Result (
   , ExtraStats
 )
 where
+import Data.ByteString(ByteString)
 
 data FibonResult = FibonResult {
       benchName   :: String
@@ -36,6 +37,6 @@ data RunDetail = RunDetail {runTime :: Double, runStats :: ExtraStats}
   deriving (Read, Show)
 
 --type ExtraStats = [(String, String)]
-type ExtraStats = String
+type ExtraStats = ByteString
 
 

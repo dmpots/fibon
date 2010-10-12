@@ -93,6 +93,7 @@ Executable fibon-run
                 , old-locale  == 1.0.*
                 , statistics  == 0.6.*
                 , vector      == 0.6.*
+                , bytestring == 0.9.*
 --  other-modules:  Fibon.Benchmarks
 
 Executable fibon-init
@@ -118,11 +119,12 @@ Executable fibon-analyse
                     , mtl        == 1.1.*
                     , filepath   == 1.1.*
                     , bytestring == 0.9.*
-                    , text       == 0.8.*
                     , tabular    == 0.2.*
                     , vector     == 0.6.*
                     , statistics == 0.6.*
                     , regex-compat == 0.93.*
+                    , attoparsec == 0.8.*
+                    , bytestring-lexing == 0.2.*
   extensions: CPP
 
 

@@ -5,6 +5,7 @@ module Fibon.Analyse.AnalysisRoutines(
 )
 where
 
+import Data.ByteString(ByteString)
 import Fibon.Result
 import Fibon.Analyse.ExtraStats
 import Fibon.Analyse.Metrics
@@ -12,9 +13,9 @@ import Fibon.Analyse.Parse
 import Fibon.Analyse.Result
 
 data Analysis a = Analysis {
-      fibonAnalysis :: (FibonResult -> IO FibonStats)-- ^ RunData analyser
-    , extraParser   :: (String  -> Maybe a)          -- ^ extraStats parser
-    , extraAnalysis :: ([a]     -> IO    a)          -- ^ extraStats analyser
+      fibonAnalysis :: (FibonResult  -> IO FibonStats)-- ^ RunData analyser
+    , extraParser   :: (ByteString -> Maybe a)        -- ^ extraStats parser
+    , extraAnalysis :: ([a]     -> IO    a)           -- ^ extraStats analyser
   }
 
 noAnalysis :: Analysis a

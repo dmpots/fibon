@@ -7,8 +7,6 @@ where
 
 import Data.Char
 import qualified Data.Map        as M
-import qualified Data.Text       as T
-import qualified Data.Text.IO    as T
 import Data.Word
 import Fibon.Result
 import Fibon.Analyse.ExtraStats
@@ -20,7 +18,7 @@ import Text.Regex
 parseFibonResults :: FilePath  -- ^ input file
                   -> IO (Maybe (M.Map ResultLabel [FibonResult])) -- ^ Result
 parseFibonResults file = do
-  input <- T.readFile file
+  input <- readFile file
   case runParser input of
     Nothing -> return Nothing
     Just [] -> return Nothing
@@ -29,12 +27,12 @@ parseFibonResults file = do
     baseName        = takeBaseName file
     addFileSource s = baseName ++ s
 
-    runParser :: T.Text -> Maybe [FibonResult]
-    runParser text = sequence (map parseLine (T.lines text))
+    runParser :: String -> Maybe [FibonResult]
+    runParser text = sequence (map parseLine (lines text))
 
-    parseLine :: T.Text -> Maybe FibonResult
+    parseLine :: String -> Maybe FibonResult
     parseLine line = 
-      case reads (T.unpack line) of
+      case reads line of
         [(r, _)] -> Just r
         _        -> Nothing
 

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 module Fibon.Analyse.ExtraStats.GhcStats(
     GhcStats(..)
   , parseMachineReadableStats
@@ -6,6 +8,11 @@ module Fibon.Analyse.ExtraStats.GhcStats(
 where
 
 import Control.Monad
+import Data.Attoparsec(maybeResult)
+import Data.Attoparsec.Char8
+import Data.ByteString(ByteString)
+import qualified Data.ByteString.Char8 as BC
+import Data.ByteString.Lex.Double
 import qualified Data.Vector.Unboxed as V
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Statistics as Statistics
@@ -30,9 +37,7 @@ data GhcStats = GhcStats {
   }
   deriving (Read, Show)
 
-
-
-parseMachineReadableStats :: String -> Maybe GhcStats
+parseMachineReadableStats :: ByteString -> Maybe GhcStats
 parseMachineReadableStats s = do
   stats <- toAssocList s
   let find = flip lookup stats
@@ -66,26 +71,49 @@ parseMachineReadableStats s = do
     , ghcCpuTime              = ghcC
     , ghcWallTime             = ghcW
   }
+  where
+    addM :: Num a => Measurement a -> Measurement a -> Maybe (Measurement a)
+    addM (Single a) (Single b) = Just $ Single (a+b)
+    addM _ _ = Nothing
 
-toAssocList :: String -> Maybe [(String, String)]
-toAssocList = tryRead . unlines . drop 1 . lines
+--
+-- Parsing Routines
+--
+toAssocList :: ByteString -> Maybe [(ByteString, ByteString)]
+toAssocList = maybeResult . parse parseList . BC.unlines . drop 1 . BC.lines
 
-readMem :: String -> Maybe (Measurement MemSize)
-readMem s = (Single . MemSize) `liftM` (tryRead s)
+readMem :: ByteString -> Maybe (Measurement MemSize)
+readMem s = (Single . MemSize . fromIntegral . fst) `liftM` (BC.readInteger s)
 
-readTime :: String -> Maybe (Measurement ExecTime)
-readTime s = (Single . ExecTime) `liftM` (tryRead s)
+readTime :: ByteString -> Maybe (Measurement ExecTime)
+readTime s = (Single . ExecTime . fst) `liftM` (readDouble s)
 
-tryRead :: Read a => String -> Maybe a
-tryRead s =
-  case reads s of
-    [(p,_)] -> Just p
-    _       -> Nothing
+parseList :: Parser [(ByteString, ByteString)]
+parseList = do
+  skipSpace
+  char '['
+  tups <- parseTuple `sepBy` (skipSpace >> char ',')
+  skipSpace
+  char ']'
+  return tups
 
-addM :: Num a => Measurement a -> Measurement a -> Maybe (Measurement a)
-addM (Single a) (Single b) = Just $ Single (a+b)
-addM _ _ = Nothing
+parseTuple :: Parser (ByteString, ByteString)
+parseTuple = do
+  skipSpace
+  char '(' >> skipSpace
+  s1 <- parseString
+  char ',' >> skipSpace
+  s2 <- parseString
+  skipSpace
+  char ')'
+  return (s1, s2)
 
+parseString :: Parser ByteString
+parseString = do
+  char '"'
+  s <- takeTill ('"'==)
+  char '"'
+  return s
 
 --
 -- Analysis Functions

@@ -8,8 +8,9 @@ where
 import Control.Concurrent
 import Control.Monad
 import Control.Exception
-import Data.Time.Clock
+import qualified Data.ByteString as B
 import Data.Maybe
+import Data.Time.Clock
 import qualified Data.Vector.Unboxed as Vector
 import Fibon.BenchmarkInstance
 import Fibon.Result
@@ -116,16 +117,14 @@ readExtraStats bb = do
       logReadE :: IOException -> IO ExtraStats
       logReadE e =
         Log.warn ("Error reading stats file: "++statsFile++"\n  "++show e)
-        >> return []
-      --logParseE =
-      --  Log.warn ("Error parsing stats file: "++statsFile) >> return []
+        >> return B.empty
   case mbStatsFile of
-    Nothing -> return []
+    Nothing -> return B.empty
     Just f  -> do
       handle logReadE $
         bracket (openFile ((pathToExeRunDir bb) </> f) ReadMode)
                 (hClose)
-                (\h -> hGetContents h >>= \s -> length s `seq` return s)
+                (\h -> B.hGetContents h >>= \s -> B.length s `seq` return s)
                     --stats <- hGetContents h
                     -- drop header line in machine readable stats
                     --let body = (unlines . drop 1 . lines) stats
@@ -160,7 +159,7 @@ summarize ds = RunSummary {
   }
   where
     times = (Vector.fromList $ map runTime ds)
-    stats = concatMap runStats ds
+    stats = case ds of (x:_) -> runStats x; _ -> B.empty
 
 type TimeoutLength = Int
 runBenchmarkWithTimeout :: TimeoutLength -> BenchmarkBundle -> RunStepResult
