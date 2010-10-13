@@ -20,6 +20,9 @@ set of benchmarks. Benchmarks are stored in the
 a [git submodule][2] which means you can easily grab the standard
 suite or use a suite kept under your own source control.
 
+The default suite of benchmarks is stored in the
+[fibon-benchmarks][3] repository on Github.
+
 Benchmark Groups
 ------------------
 Benchamarks named and organized into groups based on the filesystem
@@ -29,10 +32,11 @@ an be in the benchmark group `Hackage`.
 
 Executables
 ------------------
-The fibon package builds three tools
-  1. `fibon-run` - runs the benchmarks
-  2. `fibon-analyze` - analyzes the results of a run
-  2. `fibon-init` - utilty used when adding new benchmarks
+The fibon package builds three tools:
+
+1. `fibon-run` - runs the benchmarks
+2. `fibon-analyze` - analyzes the results of a run
+3. `fibon-init` - utilty used when adding new benchmarks
 
 Size and Tune
 ------------------
@@ -58,13 +62,13 @@ Working directories
 
 Getting the Benchmarks
 ===================================================================
-The benchmarks are kept in a separate repository as a [git
-submodule][2]. You can get the fibon benchmarks by updating the
+The benchmarks are kept in a separate repository as a git
+submodule. You can get the fibon benchmarks by updating the
 submodule from within your fibon working directory
 
     $ git submodule update --init benchmarks
 
-This will checkout the benchmarks from the fibon-benchmarks
+This will checkout the benchmarks from the [fibon-benchmarks][3]
 repository and place them in your working copy.
 
 Running Benchmarks
@@ -104,9 +108,9 @@ a list of benchmarks or groups to run on the command line. Use
 Running the benchmarks will produce some logging to standard out and
 create four output files in the `log` directory.
 
-  1. `*.LOG` - the full log of the run
-  1. `*.SUMMARY` - the mean runtimes of each benchmark
-  1. `*.RESULTS` - the full results (passed to `fibon-analyse`)
+1. `*.LOG` - the full log of the run
+2. `*.SUMMARY` - the mean runtimes of each benchmark
+3. `*.RESULTS` - the full results (passed to `fibon-analyse`)
 
 Analyzing Benchmark Results
 ===================================================================
@@ -131,3 +135,4 @@ Ghc610
 
 [1]: http://hackage.haskell.org
 [2]: http://www.kernel.org/pub/software/scm/git/docs/user-manual.html#submodules
+[3]: http://github.com/dmpots/fibon-benchmarks
