@@ -1,12 +1,16 @@
 module Fibon.Analyse.Parse(
     GhcStats(..)
-  , parseFibonResults
+  , parseShowFibonResults
+  , parseBinaryFibonResults
   , parseBinarySize
+  , ParseResult
 )
 where
 
 import Data.Char
+import qualified Data.ByteString as B
 import qualified Data.Map        as M
+import Data.Serialize
 import Data.Word
 import Fibon.Result
 import Fibon.Analyse.ExtraStats
@@ -14,19 +18,16 @@ import Fibon.Analyse.Result
 import System.FilePath
 import Text.Regex
 
+type ParseResult = M.Map ResultLabel [FibonResult]
 
-parseFibonResults :: FilePath  -- ^ input file
-                  -> IO (Maybe (M.Map ResultLabel [FibonResult])) -- ^ Result
-parseFibonResults file = do
+parseShowFibonResults :: FilePath -> IO (Maybe ParseResult)
+parseShowFibonResults file = do
   input <- readFile file
   case runParser input of
     Nothing -> return Nothing
     Just [] -> return Nothing
-    Just rs -> return (Just $ M.mapKeys addFileSource (groupResults rs))
+    Just rs -> return (Just $ convertToMap file rs)
   where
-    baseName        = takeBaseName file
-    addFileSource s = baseName ++ s
-
     runParser :: String -> Maybe [FibonResult]
     runParser text = sequence (map parseLine (lines text))
 
@@ -36,7 +37,21 @@ parseFibonResults file = do
         [(r, _)] -> Just r
         _        -> Nothing
 
-groupResults :: [FibonResult] -> M.Map ResultLabel [FibonResult]
+parseBinaryFibonResults :: FilePath -> IO (Maybe ParseResult)
+parseBinaryFibonResults file = do
+  input <- B.readFile file
+  case decode input of
+    Left   _ -> return Nothing
+    Right [] -> return Nothing
+    Right rs -> return (Just $ convertToMap file rs)
+
+convertToMap :: FilePath -> [FibonResult] -> ParseResult
+convertToMap file rs = M.mapKeys addFileSource (groupResults rs)
+  where
+    addFileSource s = baseName ++ s
+    baseName        = takeBaseName file
+
+groupResults :: [FibonResult] -> ParseResult
 groupResults = foldr grouper M.empty
   where
   grouper   r = M.insertWith (++)  (benchType r) [r]

@@ -21,11 +21,14 @@ import qualified Data.Vector.Unboxed as V
 
 runAnalysis :: Analysis a -> FilePath -> IO (Maybe [ResultColumn a])
 runAnalysis analysis file = do
-  fibonResults <- parseFibonResults file
+  fibonResults <- parse file
   case fibonResults of
     Nothing -> return Nothing
     Just rs -> do x <- createResultColumns analysis rs
                   return (Just x)
+  where
+    parse f | ".BINARY" `isSuffixOf` f = parseBinaryFibonResults f
+            | otherwise                = parseShowFibonResults   f
 
 createResultColumns :: Analysis a
                     -> M.Map ResultLabel [FibonResult] 
