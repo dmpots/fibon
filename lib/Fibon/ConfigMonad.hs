@@ -14,6 +14,7 @@ module Fibon.ConfigMonad (
   , noExtraStats
   , useGhcDir
   , useGhcInPlaceDir
+  , getEnv
 )
 where
 
@@ -38,6 +39,7 @@ data ConfigState a = ConfigState {
     flags          :: a
   , limit          :: Timeout
   , extraStatsFile :: Maybe FilePath
+  , environment    :: [(String, String)]
   }
 type ConfigMap   = Map.Map FlagParameter [String]
 type ConfigMonad = GenConfigMonad ()
@@ -47,25 +49,25 @@ done :: ConfigMonad
 done = CM (return ())
 
 replace :: FlagParameter -> String -> ConfigMonad
-replace p f = do
-  CM $ modify $ (\c -> c {flags = Map.insert p [f] (flags c)})
+replace p f = CM $
+  modify $ (\c -> c {flags = Map.insert p [f] (flags c)})
 
 append :: FlagParameter -> String -> ConfigMonad
-append p f = do
-  CM $ modify $ (\c -> c {flags = Map.insertWith (flip (++)) p as (flags c)})
+append p f = CM $
+  modify $ (\c -> c {flags = Map.insertWith (flip (++)) p as (flags c)})
   where as = words f
 
 setTimeout :: Timeout -> ConfigMonad
-setTimeout t = do
-  CM $ modify $ (\c -> c {limit = t})
+setTimeout t = CM $
+  modify $ (\c -> c {limit = t})
 
 collectExtraStatsFrom :: FilePath -> ConfigMonad
-collectExtraStatsFrom f = do
-  CM $ modify $ (\c -> c {extraStatsFile = Just f})
+collectExtraStatsFrom f = CM $
+  modify $ (\c -> c {extraStatsFile = Just f})
 
 noExtraStats :: ConfigMonad
-noExtraStats = do
-  CM $ modify $ (\c -> c {extraStatsFile = Nothing})
+noExtraStats = CM $
+  modify $ (\c -> c {extraStatsFile = Nothing})
 
 useGhcDir :: FilePath -> ConfigMonad
 useGhcDir dir = do
@@ -77,13 +79,19 @@ useGhcInPlaceDir dir = do
   append ConfigureFlags $ "--with-ghc="++(dir </> "ghc-stage2")
   append ConfigureFlags $ "--with-ghc-pkg="++(dir </> "ghc-pkg")
 
-runWithInitialFlags :: FlagConfig -> ConfigMonad -> Configuration
-runWithInitialFlags fc cm = toConfig finalState
+getEnv :: String -> GenConfigMonad (Maybe String)
+getEnv s = CM $ do
+  e <- gets environment
+  return (lookup s e)
+
+runWithInitialFlags :: FlagConfig -> [(String, String)] -> ConfigMonad -> Configuration
+runWithInitialFlags fc progEnv cm = toConfig finalState
   where
   startState = ConfigState {
       flags          = fromFlagConfig fc
     , limit          = Infinity
     , extraStatsFile = Nothing
+    , environment    = progEnv
     }
   finalState = execState (configState cm) startState
 

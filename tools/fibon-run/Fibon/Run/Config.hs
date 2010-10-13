@@ -6,6 +6,7 @@ module Fibon.Run.Config (
   , Fibon.ConfigMonad.noExtraStats
   , Fibon.ConfigMonad.useGhcDir
   , Fibon.ConfigMonad.useGhcInPlaceDir
+  , Fibon.ConfigMonad.getEnv
   , Fibon.Timeout.Timeout(..)
   , Fibon.ConfigMonad.FlagParameter(..)
   , Fibon.ConfigMonad.Configuration
@@ -67,8 +68,9 @@ mkConfig :: RunConfig
                 -> FibonBenchmark
                 -> InputSize
                 -> TuneSetting
+                -> [(String, String)]
                 -> Configuration
-mkConfig rc bm size tune = runWithInitialFlags benchFlags configM
+mkConfig rc bm size tune env = runWithInitialFlags benchFlags env configM
   where
   configM = mapM_ (uncurry builder) [
         (ConfigTuneDefault, ConfigBenchDefault)

@@ -41,12 +41,13 @@ main = do
   uniq       <- chooseUniqueName workingDir (configId runConfig)
   (logFile, outFile, summaryFile, binFile) <- Log.setupLogger logPath logPath uniq
   startTime <- timeStamp
+  progEnv <- getEnvironment
   Log.notice ("Starting Run at   " ++ startTime)
   Log.notice ("Logging output  to " ++ logFile)
   Log.notice ("Logging result  to " ++ outFile)
   Log.notice ("Logging summary to " ++ summaryFile)
   Log.notice ("Logging binary  to " ++ binFile)
-  let bundles = makeBundles runConfig workingDir benchRoot uniq
+  let bundles = makeBundles runConfig workingDir benchRoot uniq progEnv
   results <- mapM (runAndReport action) bundles
   (B.writeFile binFile . encode) (catMaybes results)
   endTime <- timeStamp
@@ -66,9 +67,9 @@ parseArgsOrDie = do
         Just msg -> putStrLn msg >> exitSuccess
         Nothing  -> return opts
 
-type RunResult = IO (Maybe FibonResult)
-type RunCont a = (a -> RunResult)
-runAndReport :: Action -> BenchmarkBundle -> RunResult
+type RunResult = Maybe FibonResult
+type RunCont a = (a -> IO RunResult)
+runAndReport :: Action -> BenchmarkBundle -> IO RunResult
 runAndReport action bundle = do
   Log.notice $ "Benchmark: "++ (bundleName bundle)++ " action="++(show action)
   case action of
@@ -83,14 +84,14 @@ runAndReport action bundle = do
                 return (Just fr)
               )
   where
-  run :: Show a => ActionRunner a -> RunCont a -> RunResult
+  run :: Show a => ActionRunner a -> RunCont a -> IO RunResult
   run = runAndLogErrors bundle
 
 runAndLogErrors :: Show a
                 => BenchmarkBundle
                 -> ActionRunner a
                 -> RunCont a
-                -> RunResult
+                -> IO RunResult
 runAndLogErrors bundle act cont = do
   result <- try (act bundle)
   -- result could fail from an IOError, or from a failure in the RunMonad
@@ -119,11 +120,12 @@ makeBundles :: RunConfig
             -> FilePath  -- ^ Working directory
             -> FilePath  -- ^ Benchmark base path
             -> String    -- ^ Unique Id
+            -> [(String, String)] -- ^ Environment variables
             -> [BenchmarkBundle]
-makeBundles rc workingDir benchRoot uniq = map bundle bms
+makeBundles rc workingDir benchRoot uniq progEnv = map bundle bms
   where
   bundle (bm, size, tune) =
-    mkBundle rc bm workingDir benchRoot uniq size tune
+    mkBundle rc bm workingDir benchRoot uniq size tune progEnv
   bms = sort
         [(bm, size, tune) |
                       size <- (sizeList rc),

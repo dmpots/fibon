@@ -53,8 +53,9 @@ mkBundle :: RunConfig
          -> String   -- ^ unique id
          -> InputSize
          -> TuneSetting
+         -> [(String, String)] -- ^ Environment variables
          -> BenchmarkBundle
-mkBundle rc bm wd bmsDir uniq size tune =
+mkBundle rc bm wd bmsDir uniq size tune progEnv =
   BenchmarkBundle {
       benchmark     = bm
     , workDir       = wd
@@ -69,7 +70,7 @@ mkBundle rc bm wd bmsDir uniq size tune =
     , extraStats    = (extraStatsFile configuration)
   }
   where
-    configuration = mkConfig rc bm size tune
+    configuration = mkConfig rc bm size tune progEnv
 
 bundleName :: BenchmarkBundle -> String
 bundleName bb = concat $ intersperse "-"
