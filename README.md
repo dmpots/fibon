@@ -94,8 +94,8 @@ This will checkout a repository of config files. Note that currently
 these files contain some user and machine-specific configurations,
 but should be a useful starting point.
 
-You can also selectively run benchmarks, groups, sizes, and tune
-settings as described below.
+You can also command line options to selectively run benchmarks,
+groups, sizes, and tune settings as described below.
 
 Running
 ---------------
@@ -110,13 +110,18 @@ create four output files in the `log` directory.
 
 1. `*.LOG` - the full log of the run
 2. `*.SUMMARY` - the mean runtimes of each benchmark
-3. `*.RESULTS` - the full results (passed to `fibon-analyse`)
+3. `*.RESULTS` - the full results in text format (pass to `fibon-analyse`)
+4. `*.BINARY`  - the full results in binary format (pass to `fibon-analyse`)
 
 Analyzing Benchmark Results
 ===================================================================
 Benchmarks can be analyzed by the `fibon-analyse` tool.
 
     $ fibon-analyse log/000.default.RESULTS
+or
+    $ fibon-analyse log/000.default.BINARY
+
+The binary results file is much faster to parse.
 
 Adding New Benchmarks
 ===================================================================
