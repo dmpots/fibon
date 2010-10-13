@@ -93,8 +93,9 @@ Executable fibon-run
                 , old-locale  == 1.0.*
                 , statistics  == 0.6.*
                 , vector      == 0.6.*
-                , bytestring == 0.9.*
---  other-modules:  Fibon.Benchmarks
+                , bytestring  == 0.9.*
+                , cereal      == 0.3.*
+                , syb         == 0.1.*
 
 Executable fibon-init
   main-is:        Main.hs
@@ -103,7 +104,7 @@ Executable fibon-init
   build-depends:  base >= 4 && < 5
                 , filepath    == 1.1.*
                 , directory   == 1.0.*
-                , Cabal == 1.8.*
+                , Cabal       == 1.8.*
 
 Executable fibon-analyse
   if (flag(analyse))
@@ -125,6 +126,8 @@ Executable fibon-analyse
                     , regex-compat == 0.93.*
                     , attoparsec == 0.8.*
                     , bytestring-lexing == 0.2.*
+                    , cereal     == 0.3.*
+                    , syb        == 0.1.*
   extensions: CPP
 
 

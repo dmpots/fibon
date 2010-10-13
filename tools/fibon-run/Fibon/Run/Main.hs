@@ -4,8 +4,11 @@ module Main (
 where 
 import Control.Monad
 import Control.Exception
+import qualified Data.ByteString as B
 import Data.Char
 import Data.List
+import Data.Maybe
+import Data.Serialize
 import Data.Time.Clock
 import Data.Time.Format
 import Data.Time.LocalTime
@@ -36,18 +39,22 @@ main = do
       logPath    = currentDir </> "log"
       action     = optAction opts
   uniq       <- chooseUniqueName workingDir (configId runConfig)
-  (logFile, outFile, summaryFile) <- Log.setupLogger logPath logPath uniq
+  (logFile, outFile, summaryFile, binFile) <- Log.setupLogger logPath logPath uniq
   startTime <- timeStamp
   Log.notice ("Starting Run at   " ++ startTime)
   Log.notice ("Logging output  to " ++ logFile)
   Log.notice ("Logging result  to " ++ outFile)
   Log.notice ("Logging summary to " ++ summaryFile)
-  mapM_ (runAndReport action) (makeBundles runConfig workingDir benchRoot uniq)
+  Log.notice ("Logging binary  to " ++ binFile)
+  let bundles = makeBundles runConfig workingDir benchRoot uniq
+  results <- mapM (runAndReport action) bundles
+  (B.writeFile binFile . encode) (catMaybes results)
   endTime <- timeStamp
   Log.notice ("Finished Run at   " ++ endTime)
   Log.notice ("Logged output  to " ++ logFile)
   Log.notice ("Logged result  to " ++ outFile)
   Log.notice ("Logged summary to " ++ summaryFile)
+  Log.notice ("Logged binary  to " ++ binFile)
 
 parseArgsOrDie :: IO Opt
 parseArgsOrDie = do
@@ -59,37 +66,39 @@ parseArgsOrDie = do
         Just msg -> putStrLn msg >> exitSuccess
         Nothing  -> return opts
 
-runAndReport :: Action -> BenchmarkBundle -> IO ()
+type RunResult = IO (Maybe FibonResult)
+type RunCont a = (a -> RunResult)
+runAndReport :: Action -> BenchmarkBundle -> RunResult
 runAndReport action bundle = do
   Log.notice $ "Benchmark: "++ (bundleName bundle)++ " action="++(show action)
   case action of
-    Sanity -> run sanityCheckBundle  (const $ return ())
+    Sanity -> run sanityCheckBundle  (const $ return Nothing)
     Build  -> run buildBundle        (\(BuildData time _size) -> do
                 Log.info (printf "Build completed in %0.2f seconds" time)
+                return Nothing
               )
     Run    -> run runBundle          (\fr@(FibonResult n _bd rd) -> do
-                -- Log.notice (show rr)
                 Log.result(show fr)
                 Log.summary(printf "%s %.4f" n ((meanTime . summary) rd))
+                return (Just fr)
               )
-  return ()
   where
-  run :: Show a => ActionRunner a -> (a -> IO ()) -> IO ()
+  run :: Show a => ActionRunner a -> RunCont a -> RunResult
   run = runAndLogErrors bundle
 
 runAndLogErrors :: Show a
                 => BenchmarkBundle
                 -> ActionRunner a
-                -> (a -> IO ())
-                -> IO ()
+                -> RunCont a
+                -> RunResult
 runAndLogErrors bundle act cont = do
   result <- try (act bundle)
   -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
-    Left  ioe -> logError (show (ioe :: IOError))
+    Left  ioe -> logError (show (ioe :: IOError)) >> return Nothing
     Right res ->
       case res of
-        Left  e -> logError (show e) >> return ()
+        Left  e -> logError (show e) >> return Nothing
         Right r -> cont r
    where
    name = bundleName bundle

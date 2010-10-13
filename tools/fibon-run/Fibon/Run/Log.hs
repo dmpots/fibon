@@ -28,12 +28,13 @@ resultLog = "Fibon.Result"
 summaryLog :: String
 summaryLog = "Fibon.Summary"
 
-setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath, FilePath)
+setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath, FilePath, FilePath)
 setupLogger logDir outDir runId = do
   let logFileName = printf "%s.LOG" runId
       logPath     = logDir </> logFileName
       resultPath  = outDir </> (printf "%s.RESULTS" runId)
       summaryPath = outDir </> (printf "%s.SUMMARY" runId)
+      binaryPath  = outDir </> (printf "%s.BINARY"  runId)
   ldExists <- doesDirectoryExist logDir
   unless ldExists (createDirectory logDir)
   h  <- openFile logPath WriteMode
@@ -44,7 +45,7 @@ setupLogger logDir outDir runId = do
   updateGlobalLogger rootLoggerName (setLevel DEBUG . setHandlers [ch,fh])
   updateGlobalLogger resultLog      (setLevel DEBUG . setHandlers [rh])
   updateGlobalLogger summaryLog     (setLevel DEBUG . setHandlers [sh])
-  return (logPath, resultPath, summaryPath)
+  return (logPath, resultPath, summaryPath, binaryPath)
 
 debug, info, notice, warn, error :: String -> IO ()
 debug  = debugM fibonLog
