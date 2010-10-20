@@ -9,7 +9,7 @@ Fibon in a Flash
 Introduction
 ===================================================================
 Fibon is a set of tools for running and analysing benchmarks in
-Haskell. Most importantly, it includes a set of default benchmarks
+Haskell. Most importantly, it includes a set of [default benchmarks][3]
 taken from the [Hackage][1] open source repository.
 
 Benchmarks
