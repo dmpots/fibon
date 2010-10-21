@@ -32,9 +32,9 @@ setupLogger :: FilePath -> FilePath -> String -> IO (FilePath, FilePath, FilePat
 setupLogger logDir outDir runId = do
   let logFileName = printf "%s.LOG" runId
       logPath     = logDir </> logFileName
-      resultPath  = outDir </> (printf "%s.RESULTS" runId)
+      resultPath  = outDir </> (printf "%s.RESULTS.SHOW" runId)
       summaryPath = outDir </> (printf "%s.SUMMARY" runId)
-      binaryPath  = outDir </> (printf "%s.BINARY"  runId)
+      binaryPath  = outDir </> (printf "%s.RESULTS"  runId)
   ldExists <- doesDirectoryExist logDir
   unless ldExists (createDirectory logDir)
   h  <- openFile logPath WriteMode

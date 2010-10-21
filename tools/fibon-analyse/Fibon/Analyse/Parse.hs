@@ -49,7 +49,7 @@ convertToMap :: FilePath -> [FibonResult] -> ParseResult
 convertToMap file rs = M.mapKeys addFileSource (groupResults rs)
   where
     addFileSource s = baseName ++ s
-    baseName        = takeBaseName file
+    baseName        = takeWhile (/= '.')  (takeBaseName file)
 
 groupResults :: [FibonResult] -> ParseResult
 groupResults = foldr grouper M.empty

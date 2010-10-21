@@ -110,8 +110,8 @@ create four output files in the `log` directory.
 
 1. `*.LOG` - the full log of the run
 2. `*.SUMMARY` - the mean runtimes of each benchmark
-3. `*.RESULTS` - the full results in text format (pass to `fibon-analyse`)
-4. `*.BINARY`  - the full results in binary format (pass to `fibon-analyse`)
+3. `*.RESULTS`  - the full results in binary format (pass to `fibon-analyse`)
+4. `*.RESULTS.SHOW` - the full results in text format (pass to `fibon-analyse`)
 
 Analyzing Benchmark Results
 ===================================================================
@@ -119,9 +119,12 @@ Benchmarks can be analyzed by the `fibon-analyse` tool.
 
     $ fibon-analyse log/000.default.RESULTS
 or
-    $ fibon-analyse log/000.default.BINARY
+    $ fibon-analyse log/000.default.RESULTS.SHOW
 
-The binary results file is much faster to parse.
+The binary results (`.RESULT`) file is much faster to parse. It
+contains a serialization of a list of `FibonResult` structures. The
+`.SHOW` file contains a `FibonResult` on each line which can be
+parsed by using the `read` function.
 
 Adding New Benchmarks
 ===================================================================
@@ -129,7 +132,12 @@ TODO
 
 Benchmark Notes
 ===================================================================
+Ghc612
+  The Repa and Dph groups will not work properly.
+
 Ghc610
+  The Repa and Dph groups will not work properly.
+  
   ChameneosRedux
     Does not work with -O0. Gets "thread blocked indefinitely"
     exception

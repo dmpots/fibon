@@ -27,8 +27,8 @@ runAnalysis analysis file = do
     Just rs -> do x <- createResultColumns analysis rs
                   return (Just x)
   where
-    parse f | ".BINARY" `isSuffixOf` f = parseBinaryFibonResults f
-            | otherwise                = parseShowFibonResults   f
+    parse f | ".SHOW" `isSuffixOf` f = parseShowFibonResults   f
+            | otherwise              = parseBinaryFibonResults f
 
 createResultColumns :: Analysis a
                     -> M.Map ResultLabel [FibonResult] 

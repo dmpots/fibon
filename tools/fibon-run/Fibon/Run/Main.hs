@@ -25,6 +25,7 @@ import System.Exit
 import System.Environment
 import System.FilePath
 import System.Locale
+import System.Time
 import Text.Printf
 
 
@@ -39,23 +40,23 @@ main = do
       logPath    = currentDir </> "log"
       action     = optAction opts
   uniq       <- chooseUniqueName workingDir (configId runConfig)
-  (logFile, outFile, summaryFile, binFile) <- Log.setupLogger logPath logPath uniq
+  (logFile, showFile, summaryFile, binFile) <- Log.setupLogger logPath logPath uniq
   startTime <- timeStamp
   progEnv <- getEnvironment
-  Log.notice ("Starting Run at   " ++ startTime)
-  Log.notice ("Logging output  to " ++ logFile)
-  Log.notice ("Logging result  to " ++ outFile)
-  Log.notice ("Logging summary to " ++ summaryFile)
-  Log.notice ("Logging binary  to " ++ binFile)
+  Log.notice ("Starting Run at   " ++ prettyTimeStamp startTime)
+  Log.notice ("  log            : " ++ logFile)
+  Log.notice ("  result(binary) : " ++ binFile)
+  Log.notice ("  result(text)   : " ++ showFile)
+  Log.notice ("  result(summary): " ++ summaryFile)
   let bundles = makeBundles runConfig workingDir benchRoot uniq progEnv
   results <- mapM (runAndReport action) bundles
   (B.writeFile binFile . encode) (catMaybes results)
   endTime <- timeStamp
-  Log.notice ("Finished Run at   " ++ endTime)
-  Log.notice ("Logged output  to " ++ logFile)
-  Log.notice ("Logged result  to " ++ outFile)
-  Log.notice ("Logged summary to " ++ summaryFile)
-  Log.notice ("Logged binary  to " ++ binFile)
+  Log.notice ("Finished Run at " ++ formatEndTime startTime endTime)
+  Log.notice ("  log            : " ++ logFile)
+  Log.notice ("  result(binary) : " ++ binFile)
+  Log.notice ("  result(text)   : " ++ showFile)
+  Log.notice ("  result(summary): " ++ summaryFile)
 
 parseArgsOrDie :: IO Opt
 parseArgsOrDie = do
@@ -151,12 +152,6 @@ chooseUniqueName workingDir configName = do
   format :: Int -> String
   format d = printf "%03d.%s" d configName
 
-timeStamp :: IO String
-timeStamp = do
-  tz <- getCurrentTimeZone
-  t  <- getCurrentTime
-  return $ formatTime defaultTimeLocale "%F %T" (utcToLocalTime tz t)
-
 mergeConfigOpts :: RunConfig -> Opt -> RunConfig
 mergeConfigOpts rc opt = rc {
       tuneList   = maybe (tuneList rc) (:[]) (optTuneSetting opt)
@@ -164,6 +159,25 @@ mergeConfigOpts rc opt = rc {
     , runList    = maybe (runList  rc)   id  (optBenchmarks  opt)
     , iterations = maybe (iterations rc) id  (optIterations  opt)
   }
+
+type TimeStamp = (ClockTime, LocalTime)
+timeStamp :: IO TimeStamp
+timeStamp = do
+  tz <- getCurrentTimeZone
+  t  <- getCurrentTime
+  ct <- getClockTime
+  return $ (ct, utcToLocalTime tz t)
+
+prettyTimeStamp :: TimeStamp -> String
+prettyTimeStamp (_,lt) = formatTime defaultTimeLocale "%F %T" lt
+
+prettyTimeDiff :: TimeStamp -> TimeStamp -> String
+prettyTimeDiff (ct1,_) (ct2,_) =
+  timeDiffToString . normalizeTimeDiff $ diffClockTimes ct2 ct1
+
+formatEndTime :: TimeStamp -> TimeStamp -> String
+formatEndTime startT endT =
+  prettyTimeStamp endT ++ " (completed in " ++ prettyTimeDiff startT endT ++")"
 
 {-
 dumpConfig :: RunConfig -> IO ()
