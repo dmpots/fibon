@@ -21,6 +21,7 @@ basicTable = [
 ghcStatsSummaryTable :: TableSpec GhcStats
 ghcStatsSummaryTable = [
       ColSpec "Size"       (onFibonStats binarySize)
+    , ColSpec "Compile"    (onFibonStats compileTime)
     , ColSpec "Allocs"     (onExtraStats bytesAllocated)
     , ColSpec "Runtime"    (onExtraStats ghcCpuTime)
     , ColSpec "Elapsed"    (onExtraStats ghcWallTime)
