@@ -87,6 +87,10 @@ Flag analyse
   description: Build the fibon-analyse program
   default: True
 
+Flag nofib
+  description: Build the fibon-nofib program
+  default: False
+
 Executable fibon-run
   main-is:          Fibon/Run/Main.hs
   ghc-options: -Wall -threaded
@@ -144,4 +148,27 @@ Executable fibon-analyse
                     , syb        == 0.1.*
   extensions: CPP
 
-
+Executable fibon-nofib
+  main-is:        Main.hs
+  if (flag(nofib))
+    buildable:    True
+  else
+    buildable:    False
+  ghc-options:    -Wall
+  include-dirs: config
+  hs-source-dirs: lib benchmarks config tools/fibon-nofib tools/fibon-run
+  if (flag(nofib))
+    build-depends:  base >= 4 && < 5
+                  , containers
+                  , mtl         == 1.1.*
+                  , filepath    == 1.1.*
+                  , directory   == 1.0.*
+                  , Cabal       == 1.8.*
+                  , process     == 1.0.*
+                  , hslogger    == 1.0.*
+                  , statistics  == 0.6.*
+                  , syb         == 0.1.*
+                  , cereal      == 0.3.*
+                  , bytestring  == 0.9.*
+                  , vector      == 0.6.*
+                  , time        == 1.1.*

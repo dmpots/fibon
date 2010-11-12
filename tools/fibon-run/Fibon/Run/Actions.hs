@@ -2,6 +2,7 @@ module Fibon.Run.Actions (
       runBundle
     , buildBundle
     , sanityCheckBundle
+    , prepNofibBundle
     , FibonError
     , Action(..)
     , ActionRunner
@@ -67,6 +68,10 @@ runBundle bb = runFibonMonad bb $ do
   RunComplete   rr <- runAction Run
   return $ FibonResult (bundleName bb) br rr
 
+prepNofibBundle :: BenchmarkBundle -> IO (Either FibonError ())
+prepNofibBundle bb = runFibonMonad bb $ do
+  prepRun pathToBench
+
 runFibonMonad :: BenchmarkBundle
               -> ErrorT FibonError (ReaderT BenchmarkBundle IO) a
               -> IO (Either FibonError a)
@@ -85,7 +90,7 @@ runAction Build = do
   return $ BuildComplete r
 runAction Run = do
   io $ Log.notice "  Running..."
-  prepRun
+  prepRun pathToExeBuildDir
   r <- runRun
   return $ RunComplete r
 
@@ -144,9 +149,9 @@ runBuild = do
   size <- runSizeCommand
   return $ BuildData {buildTime = time, buildSize = size}
 
-prepRun :: FibonRunMonad ()
-prepRun = do
-  mapM_ copyFiles [
+prepRun :: (BenchmarkBundle -> FilePath) -> FibonRunMonad ()
+prepRun destSelector = do
+  mapM_ (copyFiles destSelector) [
       pathToSizeInputFiles
     , pathToAllInputFiles
     , pathToSizeOutputFiles
@@ -168,17 +173,18 @@ runRun =  do
   simplify (Timeout         )= "Timeout"
 
 copyFiles :: (BenchmarkBundle -> FilePath)
+          -> (BenchmarkBundle -> FilePath)
           -> FibonRunMonad ()
-copyFiles pathSelector = do
+copyFiles destSelector pathSelector = do
   bb <- ask
   let srcPath = pathSelector bb
-      dstPath = pathToExeBuildDir bb
+      dstPath = destSelector bb
       cp f    = do
         io $ copyFile (srcPath </> baseName) (dstPath </> baseName)
         where baseName = snd (splitFileName f)
   dExists <- io $ doesDirectoryExist srcPath
   if not dExists
-    then do return ()
+    then do io $ Log.debug (srcPath ++ " does not exist") >> return ()
     else do
       io $ Log.info ("Copying files\n  from: "++srcPath++"\n  to: "++dstPath)
       files <- io $ getDirectoryContents srcPath

@@ -17,6 +17,7 @@ module Fibon.Run.BenchmarkBundle (
   , pathToStdinFile
   , prettyRunCommand
   , bundleProcessSpec
+  , benchExeAndArgs
 )
 where
 
