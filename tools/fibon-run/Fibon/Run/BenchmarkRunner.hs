@@ -34,6 +34,7 @@ data RunFailure =
     MissingOutput FilePath
   | DiffError     String
   | Timeout
+  | ExitError     {exitExpected :: ExitCode, exitActual :: ExitCode}
   deriving (Read, Show)
 
 run :: BenchmarkBundle -> IO RunResult
@@ -72,13 +73,19 @@ analyze times ghcStats numResamples ci = do
   return runData
 -}
 
-checkResult :: BenchmarkBundle -> IO (Maybe [RunFailure])
-checkResult bb = do
-  rs <- mapM (checkOutput bb) (output . benchDetails $ bb)
-  let errs = filter isJust rs
+checkResult :: BenchmarkBundle -> ExitCode -> IO (Maybe [RunFailure])
+checkResult bb exitCode = do
+  outputs <- mapM (checkOutput bb) (output . benchDetails $ bb)
+  let results = checkExit bb exitCode : outputs
+      errs    = filter isJust results
   case errs of
     [] -> return $ Nothing
     es -> return $ Just (catMaybes es)
+
+checkExit :: BenchmarkBundle -> ExitCode -> Maybe RunFailure
+checkExit bb actual = if actual == expected then Nothing else Just ee
+  where expected = expectedExit . benchDetails $ bb
+        ee       = ExitError {exitExpected = expected, exitActual = actual}
 
 checkOutput :: BenchmarkBundle -> OutputDescription -> IO (Maybe RunFailure)
 checkOutput bb (o, Exists) = do
@@ -178,27 +185,27 @@ runBenchmarkWithTimeout us bb = do
       -- kill the haskell thread
       killThread tid1
       return $ Left [Timeout]
-    Just runDetail -> do
-       maybe (Right runDetail) Left `liftM` checkResult bb
+    Just (runDetail, exitCode) -> do
+       maybe (Right runDetail) Left `liftM` checkResult bb exitCode
 
 runBenchmarkWithoutTimeout :: BenchmarkBundle -> RunStepResult
 runBenchmarkWithoutTimeout bb = do
-  runDetail <- timeBenchmarkExe bb Nothing
-  maybe (Right runDetail) Left `liftM` checkResult bb
+  (runDetail, exitCode) <- timeBenchmarkExe bb Nothing
+  maybe (Right runDetail) Left `liftM` checkResult bb exitCode
       
 timeBenchmarkExe :: BenchmarkBundle            -- benchmark to run
                  -> Maybe (MVar ProcessHandle) -- in case we need to kill it
-                 -> IO RunDetail
+                 -> IO (RunDetail, ExitCode)
 timeBenchmarkExe bb pidMVar = do
   p     <- bundleProcessSpec bb
   start <- getCurrentTime
   (_, _, _, pid) <- createProcess p
   maybe pass (flip putMVar pid) pidMVar
-  _  <- waitForProcess pid
+  exit  <- waitForProcess pid
   end   <- getCurrentTime
   mapM_ closeStdIO [std_in  p, std_out p, std_err p]
   stats <- readExtraStats bb
-  return $ RunDetail (realToFrac (diffUTCTime end start)) stats
+  return $ (RunDetail (realToFrac (diffUTCTime end start)) stats, exit)
 
 closeStdIO :: StdStream -> IO ()
 closeStdIO (UseHandle h) = hClose h

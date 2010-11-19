@@ -171,6 +171,7 @@ runRun =  do
   simplify (MissingOutput f) = "Missing output file: "++f
   simplify (DiffError     _ )= "Output differs from expected."
   simplify (Timeout         )= "Timeout"
+  simplify (ExitError _   a )= "Bad exit code: "++(show a)
 
 copyFiles :: (BenchmarkBundle -> FilePath)
           -> (BenchmarkBundle -> FilePath)
