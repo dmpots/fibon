@@ -9,10 +9,8 @@ import Data.Char
 import Data.List
 import Data.Maybe
 import Data.Serialize
-import Data.Time.Clock
-import Data.Time.Format
-import Data.Time.LocalTime
 import Fibon.Benchmarks
+import Fibon.FlagConfig
 import Fibon.Result
 import Fibon.Run.Actions
 import Fibon.Run.CommandLine
@@ -24,8 +22,6 @@ import System.Directory
 import System.Exit
 import System.Environment
 import System.FilePath
-import System.Locale
-import System.Time
 import Text.Printf
 
 
@@ -40,23 +36,12 @@ main = do
       logPath    = currentDir </> "log"
       action     = optAction opts
   uniq       <- chooseUniqueName workingDir (configId runConfig)
-  (logFile, showFile, summaryFile, binFile) <- Log.setupLogger logPath logPath uniq
-  startTime <- timeStamp
+  logState <- Log.startLogger logPath logPath uniq
   progEnv <- getEnvironment
-  Log.notice ("Starting Run at   " ++ prettyTimeStamp startTime)
-  Log.notice ("  log            : " ++ logFile)
-  Log.notice ("  result(binary) : " ++ binFile)
-  Log.notice ("  result(text)   : " ++ showFile)
-  Log.notice ("  result(summary): " ++ summaryFile)
   let bundles = makeBundles runConfig workingDir benchRoot uniq progEnv
   results <- mapM (runAndReport action) bundles
-  (B.writeFile binFile . encode) (catMaybes results)
-  endTime <- timeStamp
-  Log.notice ("Finished Run at " ++ formatEndTime startTime endTime)
-  Log.notice ("  log            : " ++ logFile)
-  Log.notice ("  result(binary) : " ++ binFile)
-  Log.notice ("  result(text)   : " ++ showFile)
-  Log.notice ("  result(summary): " ++ summaryFile)
+  B.writeFile (Log.binaryPath logState) ((encode . catMaybes) results)
+  Log.stopLogger logState
 
 parseArgsOrDie :: IO Opt
 parseArgsOrDie = do
@@ -73,6 +58,7 @@ type RunCont a = (a -> IO RunResult)
 runAndReport :: Action -> BenchmarkBundle -> IO RunResult
 runAndReport action bundle = do
   Log.notice $ "Benchmark: "++ (bundleName bundle)++ " action="++(show action)
+  dumpBundleConfig bundle
   case action of
     Sanity -> run sanityCheckBundle  (const $ return Nothing)
     Build  -> run buildBundle        (\(BuildData time _size) -> do
@@ -160,43 +146,18 @@ mergeConfigOpts rc opt = rc {
     , iterations = maybe (iterations rc) id  (optIterations  opt)
   }
 
-type TimeStamp = (ClockTime, LocalTime)
-timeStamp :: IO TimeStamp
-timeStamp = do
-  tz <- getCurrentTimeZone
-  t  <- getCurrentTime
-  ct <- getClockTime
-  return $ (ct, utcToLocalTime tz t)
 
-prettyTimeStamp :: TimeStamp -> String
-prettyTimeStamp (_,lt) = formatTime defaultTimeLocale "%F %T" lt
-
-prettyTimeDiff :: TimeStamp -> TimeStamp -> String
-prettyTimeDiff (ct1,_) (ct2,_) =
-  timeDiffToString . normalizeTimeDiff $ diffClockTimes ct2 ct1
-
-formatEndTime :: TimeStamp -> TimeStamp -> String
-formatEndTime startT endT =
-  prettyTimeStamp endT ++ " (completed in " ++ prettyTimeDiff startT endT ++")"
-
-{-
-dumpConfig :: RunConfig -> IO ()
-dumpConfig rc = do
-  --putStrLn $ show $ map (uncurry benchInstance) $ sort bms
-  putStrLn $ show bms
-  mapM_ (dumpInstance rc) bms
+dumpBundleConfig :: BenchmarkBundle -> IO ()
+dumpBundleConfig bb = do
+  Log.config configString
   where
-  bms = sort
-        [(bm, size, tune) |
-                      size <- (sizeList rc),
-                      bm   <- expandBenchList $ runList rc,
-                      tune <- (tuneList rc)]
+  configString = bundleName bb
+                  ++ dumpConfig "ConfigFlags" configureFlags
+                  ++ dumpConfig "BuildFlags"  buildFlags
+                  ++ dumpConfig "RunFlags"    runFlags
+  dumpConfig :: String -> (FlagConfig -> [String]) -> String
+  dumpConfig configName accessor = "\n" ++ paramSpaces ++ configName ++
+    (concatMap (\f -> "\n" ++ flagSpaces ++ f) (accessor . fullFlags $ bb))
+  paramSpaces = "  "
+  flagSpaces  = "  "++ paramSpaces
 
-dumpInstance :: RunConfig -> (FibonBenchmark, InputSize, TuneSetting)->IO ()
-dumpInstance rc inst@(bm, size, tune) = do
-  putStrLn (take 68 $ repeat '-')
-  putStrLn (show inst)
-  putStrLn (take 68 $ repeat '-')
-  putStrLn (show $ mkFlagConfig rc bm size tune)
-
--}
