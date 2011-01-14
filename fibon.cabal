@@ -109,8 +109,8 @@ Executable fibon-run
                 , time        == 1.1.*
                 , old-locale  == 1.0.*
                 , old-time    == 1.0.*
-                , statistics  == 0.6.*
-                , vector      == 0.6.*
+                , statistics  >= 0.6 && < 0.8.1
+                , vector      >= 0.6 && < 0.7.1
                 , bytestring  == 0.9.*
                 , cereal      == 0.3.*
                 , syb         == 0.1.*
@@ -139,8 +139,8 @@ Executable fibon-analyse
                     , filepath   == 1.1.*
                     , bytestring == 0.9.*
                     , tabular    == 0.2.*
-                    , vector     == 0.6.*
-                    , statistics == 0.6.*
+                    , vector     >= 0.6 && < 0.7.1
+                    , statistics >= 0.6 && < 0.8.1
                     , regex-compat == 0.93.*
                     , attoparsec == 0.8.*
                     , bytestring-lexing == 0.2.*
@@ -166,7 +166,7 @@ Executable fibon-nofib
                   , Cabal       == 1.8.*
                   , process     == 1.0.*
                   , hslogger    == 1.0.*
-                  , statistics  == 0.6.*
+                  , statistics >= 0.6 && < 0.8.1
                   , syb         == 0.1.*
                   , cereal      == 0.3.*
                   , bytestring  == 0.9.*
