@@ -47,7 +47,7 @@ options = [
           "latex" -> setFormat Latex o
           "csv"   -> setFormat Csv o
           _       -> Left $ "Invalid table format: "++a)) "OutputFormat")
-      "table format [ascii, latex, raw]"
+      "table format [ascii, latex, csv]"
     ,
     Option ['r'] ["raw"]
       (ReqArg (\a mbOpt -> process mbOpt (\o ->
