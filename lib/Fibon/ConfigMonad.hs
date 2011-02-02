@@ -15,6 +15,7 @@ module Fibon.ConfigMonad (
   , useGhcDir
   , useGhcInPlaceDir
   , getEnv
+  , useRunScript
 )
 where
 
@@ -40,6 +41,7 @@ data ConfigState a = ConfigState {
   , limit          :: Timeout
   , extraStatsFile :: Maybe FilePath
   , environment    :: [(String, String)]
+  , wrapperScript  :: Maybe (FilePath, [String]) -- (wrapper, wrapper args)
   }
 type ConfigMap   = Map.Map FlagParameter [String]
 type ConfigMonad = GenConfigMonad ()
@@ -69,6 +71,10 @@ noExtraStats :: ConfigMonad
 noExtraStats = CM $
   modify $ (\c -> c {extraStatsFile = Nothing})
 
+useRunScript :: FilePath -> String -> ConfigMonad
+useRunScript wrapper args = CM $
+  modify $ (\c -> c {wrapperScript = Just (wrapper, (words args))})
+
 useGhcDir :: FilePath -> ConfigMonad
 useGhcDir dir = do
   append ConfigureFlags $ "--with-ghc="++(dir </> "ghc")
@@ -92,6 +98,7 @@ runWithInitialFlags fc progEnv cm = toConfig finalState
     , limit          = Infinity
     , extraStatsFile = Nothing
     , environment    = progEnv
+    , wrapperScript  = Nothing
     }
   finalState = execState (configState cm) startState
 

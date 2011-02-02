@@ -152,12 +152,15 @@ dumpBundleConfig bb = do
   Log.config configString
   where
   configString = bundleName bb
-                  ++ dumpConfig "ConfigFlags" configureFlags
-                  ++ dumpConfig "BuildFlags"  buildFlags
-                  ++ dumpConfig "RunFlags"    runFlags
-  dumpConfig :: String -> (FlagConfig -> [String]) -> String
-  dumpConfig configName accessor = "\n" ++ paramSpaces ++ configName ++
-    (concatMap (\f -> "\n" ++ flagSpaces ++ f) (accessor . fullFlags $ bb))
-  paramSpaces = "  "
-  flagSpaces  = "  "++ paramSpaces
-
+                  ++ dumpConfig "ConfigFlags" (configureFlags . fullFlags)
+                  ++ dumpConfig "BuildFlags"  (buildFlags . fullFlags)
+                  ++ dumpConfig "RunFlags"    (runFlags . fullFlags)
+                  ++ dumpConfig "RunScript"   script
+                  ++ dumpConfig "RunScriptArgs" scriptArgs
+  dumpConfig :: String -> (BenchmarkBundle -> [String]) -> String
+  dumpConfig configName accessor = "\n" ++ paramSpace ++ configName ++
+    (concatMap (\f -> "\n" ++ flagSpaces ++ f) (accessor bb))
+  paramSpace = "  "
+  flagSpaces = "  "++ paramSpace
+  script     =       map fst . maybeToList . runScript
+  scriptArgs = concatMap snd . maybeToList . runScript

@@ -45,6 +45,7 @@ data BenchmarkBundle = BenchmarkBundle {
     , benchDetails  :: BenchmarkInstance
     , timeout       :: Maybe Int
     , extraStats    :: Maybe FilePath
+    , runScript     :: Maybe (FilePath, [String])
   } deriving (Show)
 
 mkBundle :: RunConfig
@@ -69,6 +70,7 @@ mkBundle rc bm wd bmsDir uniq size tune progEnv =
     , benchDetails  = benchInstance bm size
     , timeout       = timeoutToMicroSeconds (limit configuration)
     , extraStats    = (extraStatsFile configuration)
+    , runScript     = (wrapperScript configuration)
   }
   where
     configuration = mkConfig rc bm size tune progEnv
@@ -132,10 +134,13 @@ pathToStdinFile :: BenchmarkBundle -> FilePath -> FilePath
 pathToStdinFile bb inFile = (pathToExeRunDir bb) </> inFile
 
 benchExeAndArgs :: BenchmarkBundle -> (String, [String])
-benchExeAndArgs bb = (exe, fullArgs)
+benchExeAndArgs bb =
+  case runScript bb of
+    Nothing -> (realExe, realFlags)
+    Just (wrapper, args) -> (wrapper, args ++ realExe : realFlags)
   where
-  exe      = pathToExe bb
-  fullArgs = (runFlags . fullFlags) bb
+  realExe   = pathToExe bb
+  realFlags = (runFlags . fullFlags) bb
 
 prettyRunCommand :: BenchmarkBundle -> String
 prettyRunCommand bb = cmd

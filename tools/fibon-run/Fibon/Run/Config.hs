@@ -7,6 +7,7 @@ module Fibon.Run.Config (
   , Fibon.ConfigMonad.useGhcDir
   , Fibon.ConfigMonad.useGhcInPlaceDir
   , Fibon.ConfigMonad.getEnv
+  , Fibon.ConfigMonad.useRunScript
   , Fibon.Timeout.Timeout(..)
   , Fibon.ConfigMonad.FlagParameter(..)
   , Fibon.ConfigMonad.Configuration
