@@ -13,11 +13,15 @@ import Data.Attoparsec.Char8
 import Data.ByteString(ByteString)
 import qualified Data.ByteString.Char8 as BC
 import Data.ByteString.Lex.Double
+import Data.Maybe
 import qualified Data.Vector.Unboxed as V
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Statistics as Statistics
 
 data GhcStats = GhcStats {
+    -- required metrics
+    -- we fully expect these metrics to be in the stats file.
+    -- if they are missing it indicates some kind of failure.
       bytesAllocated          :: Measurement MemSize
     , numGCs                  :: Measurement MemSize
     , averageBytesUsed        :: Measurement MemSize
@@ -32,8 +36,17 @@ data GhcStats = GhcStats {
     , gcWallSeconds           :: Measurement ExecTime
 
     -- derived metrics
+    -- we can compute these metrics based on the required metrics
     , ghcCpuTime              :: Measurement ExecTime
     , ghcWallTime             :: Measurement ExecTime
+
+    -- things that might not be there
+    -- we wrap these metrics in a Maybe to indicate that
+    -- they will not necessarily be there when parsing the
+    -- ghc stats. We should not fail to parse a stat file that
+    -- is missing one of these values
+    , stgCpuTime              :: Maybe (Measurement ExecTime)
+    , stgWallTime             :: Maybe (Measurement ExecTime)
   }
   deriving (Read, Show)
 
@@ -70,11 +83,14 @@ parseMachineReadableStats s = do
     , gcWallSeconds           = gcW
     , ghcCpuTime              = ghcC
     , ghcWallTime             = ghcW
+    , stgCpuTime              = optional find "stg_cpu_seconds"
+    , stgWallTime             = optional find "stg_wall_seconds"
   }
   where
     addM :: Num a => Measurement a -> Measurement a -> Maybe (Measurement a)
     addM (Single a) (Single b) = Just $ Single (a+b)
     addM _ _ = Nothing
+    optional find name = find name >>= readTime
 
 --
 -- Parsing Routines
@@ -135,19 +151,24 @@ summarizeGhcStats stats =
     , gcWallSeconds           = sumTime gcWallSeconds
     , ghcCpuTime              = sumTime ghcCpuTime
     , ghcWallTime             = sumTime ghcWallTime
+    , stgCpuTime              = sumOptional stgCpuTime
+    , stgWallTime             = sumOptional stgWallTime
   }
   where
-    sumMem  f = Interval $ summarize stats fromIntegral round f
-    sumTime f = Interval $ summarize stats fromExecTime ExecTime f
+    sumMem  f = Interval $ summarize (map f stats) fromIntegral round
+    sumTime f = Interval $ summarize (map f stats) fromExecTime ExecTime
+    sumOptional f = doSummary vals
+      where vals = catMaybes (map f stats)
+            doSummary [] = Nothing
+            doSummary vs = Just $ Interval $ summarize vs fromExecTime ExecTime
 
-summarize :: [GhcStats]                   -- ^ Stats to summarize
-          -> (a -> Double)                -- ^ Conversion to double
-          -> (Double -> a)                -- ^ Conversion back from double
-          -> (GhcStats -> Measurement a)  -- ^ Field accessor
+summarize :: [Measurement a]   -- ^ Stats to summarize
+          -> (a -> Double)     -- ^ Conversion to double
+          -> (Double -> a)     -- ^ Conversion back from double
           -> Estimate a
-summarize stats toDouble toMeasurement f =
+summarize stats toDouble toMeasurement =
   fmap toMeasurement $ Statistics.computeSummary ArithMean rawNums
   where
-    rawNums = V.fromList $ map (getD . f) stats
+    rawNums = V.fromList $ map getD stats
     getD (Single m)   = toDouble m
     getD (Interval e) = (toDouble . ePoint) e

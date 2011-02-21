@@ -2,6 +2,7 @@
 module Fibon.Analyse.Tables (
     basicTable
   , ghcStatsSummaryTable
+  , stgTable
   , ColSpec(..)
   , TableSpec
 )
@@ -26,6 +27,16 @@ ghcStatsSummaryTable = [
     , ColSpec "Runtime"    (onExtraStats ghcCpuTime)
     , ColSpec "Elapsed"    (onExtraStats ghcWallTime)
     , ColSpec "TotalMem"   (onExtraStats maxBytesUsed)
+  ]
+
+stgTable :: TableSpec GhcStats
+stgTable = [
+    ColSpec "StgRuntime"        (onExtraStats stgCpuTime)
+  , ColSpec "StgElapsed"        (onExtraStats stgWallTime)
+  , ColSpec "MutRuntime"        (onExtraStats mutatorCPUSeconds)
+  , ColSpec "MutElapsed"        (onExtraStats mutatorWallSeconds)
+  , ColSpec "Runtime"           (onExtraStats ghcCpuTime)
+  , ColSpec "Elapsed"           (onExtraStats ghcWallTime)
   ]
 
 -- Idea borrowed graciously from nofib-analyse
