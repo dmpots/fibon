@@ -4,7 +4,6 @@ import Fibon.Analyse.Analysis
 import Fibon.Analyse.CommandLine
 import Fibon.Analyse.Output
 import Fibon.Analyse.Result
-import Fibon.Analyse.Tables
 import System.Environment
 import System.Exit
 
@@ -16,9 +15,10 @@ main = do
     Nothing -> putStrLn "Error Parsing Results"
     Just rs -> do
       let fmt  = optOutputFormat opts
-      let norm = getNormFun opts
-      putStrLn $ renderSummaryTable rs norm fmt ghcStatsSummaryTable
-      putStrLn $ renderTables       rs norm fmt ghcStatsSummaryTable
+          norm = getNormFun opts
+          tableSpec = optTableSpec opts
+      putStrLn $ renderSummaryTable rs norm fmt tableSpec
+      putStrLn $ renderTables       rs norm fmt tableSpec
 
 
 getCommandLine :: IO (Opt, [FilePath])

@@ -4,13 +4,17 @@ module Fibon.Analyse.CommandLine (
   , parseCommandLine
 )
 where
+import Data.List
 import Fibon.Analyse.Output(OutputFormat(..))
+import Fibon.Analyse.Tables(TableSpec, defaultTable, allTables)
+import Fibon.Analyse.ExtraStats(GhcStats)
 import System.Console.GetOpt
 
 data Opt = Opt {
     optHelpMsg      :: Maybe String
   , optOutputFormat :: OutputFormat
   , optNormalizeBy  :: NormalizeBy
+  , optTableSpec    :: TableSpec GhcStats
   }
 
 type UsageError  = String
@@ -22,6 +26,7 @@ defaultOpts = Opt {
     optHelpMsg      = Nothing
   , optOutputFormat = AsciiArt
   , optNormalizeBy  = ByPercent
+  , optTableSpec    = defaultTable
   }
 
 parseCommandLine :: [String] -> Either UsageError (Opt, [FilePath])
@@ -65,14 +70,29 @@ options = [
           "ratio"   -> setNorm ByRatio   o
           "none"    -> setNorm ByNone    o
           _         -> Left $ "Invalid normalization: "++a)) "NormBy")
-      "normalize results by [percent, speedup, none]"
+      "normalize results by [percent, ratio, none]"
+    ,
+    Option ['s'] ["spec"]
+      (ReqArg (\a mbOpt -> process mbOpt (\o ->
+        case lookup a allTables of
+          Just t   -> setSpec t o
+          Nothing  -> Left $ "Invalid spec: "++a++"\n  try: "++validSpecs))
+       "TableSpec")
+      ("table spec [" ++ validSpecs  ++ "]")
   ]
   where
     setFormat fmt o = Right $ o {optOutputFormat = fmt}
     setNorm  norm o = Right $ o {optNormalizeBy  = norm}
+    setSpec  spec o = Right $ o {optTableSpec    = spec}
 
 process :: MbOpt -> (Opt -> MbOpt) -> MbOpt
 process = flip (either Left)
+
+validSpecs :: String
+validSpecs = join ", " (map fst allTables)
+
+join :: String -> [String] -> String
+join s = concat . intersperse s
 
 usage :: String
 usage = usageInfo header options
