@@ -76,7 +76,7 @@ type NormMethod a = ResultColumn a -> Normalize a
 data Normalize a =
     NormPercent (ResultColumn a)
   | NormRatio   (ResultColumn a)
-  | NormNone    (ResultColumn a) -- ^ For uniform normalization use
+  | NormNone
 
 computeRows :: [(Normalize a, ResultColumn a)]
             -> [BenchName]
@@ -119,7 +119,7 @@ computeOneColumn bench (ColSpec _ metric) (normType, resultColumn) =
       case normType of
         NormPercent base -> normToBase base normalizePercent
         NormRatio   base -> normToBase base normalizeRatio
-        NormNone      _  -> return (mkRaw peak)
+        NormNone         -> return (mkRaw peak)
       where
         mkRaw  = Basic . Raw
         mkNorm = Basic . Norm

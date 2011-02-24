@@ -2,6 +2,7 @@ module Fibon.Analyse.Output (
     OutputFormat(..)
   , renderTables
   , renderSummaryTable
+  , renderFullTable
 )
 where
 
@@ -34,7 +35,7 @@ renderTables rs@(baseline:compares) normMethod fmt tableSpec =
     render colSpec =
       renderTable (cName colSpec) colNames columns fmt [colSpec]
     columns     = baselineCol : compareCols
-    baselineCol = (NormNone baseline, baseline)
+    baselineCol = (NormNone, baseline)
     compareCols = [(normMethod baseline, c) | c <- compares]
     colNames = map resultLabel rs
 
@@ -50,8 +51,27 @@ renderSummaryTable [base, peak] normMethod fmt tableSpec =
     colNames = map cName tableSpec
 renderSummaryTable _ _ _ _ = ""
 
--- | Renders a table. The number of columns is
---   length (tableData) * length (TableSpec).
+-- | Render a table containing all of the results. This table is intended to be
+--   fed to other programs (such as excel) for further analysis. The table will
+--   be rendered as follows. For each column in the table spec, we will render
+--   a column for each result in the [ResultColumn] list.
+--   The total number of columns is length (tableData) * length (TableSpec).
+renderFullTable :: [ResultColumn a] -> NormMethod a -> OutputFormat -> TableSpec a -> String
+renderFullTable [] _ _fmt _spec = ""
+renderFullTable rs@(baseline:compares) normMethod fmt tableSpec =
+  renderTable "Full Data" colNames columns fmt tableSpec
+  where
+    columns     = baselineCol : compareCols
+    baselineCol = (NormNone, baseline)
+    compareCols = [(normMethod baseline, c) | c <- compares]
+    -- !! Subtle invariant !! These names are mapped to the columns because
+    -- of the order they are computed in computeOneRow in Analysis.hs. This is
+    -- not such a great thing, but it is easy for now.
+    colNames    = concat $ map (\s -> map (\r ->  mkName s r) rs) tableSpec
+    mkName colSpec resultCol = cName colSpec ++ "." ++ resultLabel resultCol
+
+-- | Renders a table. The number of columns rendered will be equal to the
+--   length of the columnNames list.
 renderTable :: String                          -- ^ Table name
             -> [String]                        -- ^ Column names
             -> [(Normalize a, ResultColumn a)] -- ^ Table data

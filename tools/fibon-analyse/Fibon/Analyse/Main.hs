@@ -19,6 +19,7 @@ main = do
           tableSpec = optTableSpec opts
       putStrLn $ renderSummaryTable rs norm fmt tableSpec
       putStrLn $ renderTables       rs norm fmt tableSpec
+      putStrLn $ renderFullTable    rs norm fmt tableSpec
 
 
 getCommandLine :: IO (Opt, [FilePath])
@@ -34,4 +35,4 @@ getNormFun o =
   case optNormalizeBy o of
     ByPercent -> NormPercent
     ByRatio   -> NormRatio
-    ByNone    -> NormNone
+    ByNone    -> const NormNone
