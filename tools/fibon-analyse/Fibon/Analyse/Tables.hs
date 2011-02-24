@@ -63,7 +63,11 @@ ghcTable = [
     , ColSpec "GCWallSeconds" (onExtraStats gcWallSeconds)
     , ColSpec "TotalCPUTime" (onExtraStats ghcCpuTime)
     , ColSpec "TotalWallTime" (onExtraStats ghcWallTime)
-    , ColSpec "StgCPUTime" (onExtraStats stgCpuTime)
+  ]
+
+ghcPlusStgTable :: TableSpec GhcStats
+ghcPlusStgTable = ghcTable ++ [
+      ColSpec "StgCPUTime" (onExtraStats stgCpuTime)
     , ColSpec "StgWallTime" (onExtraStats stgWallTime)
   ]
 
@@ -73,6 +77,7 @@ allTables = [
     , ("nofib", nofibTable)
     , ("stg",   stgTable)
     , ("ghc",   ghcTable)
+    , ("ghc+stg", ghcPlusStgTable)
   ]
 
 -- Idea borrowed graciously from nofib-analyse
