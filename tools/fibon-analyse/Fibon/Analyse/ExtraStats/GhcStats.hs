@@ -8,7 +8,6 @@ module Fibon.Analyse.ExtraStats.GhcStats(
 where
 
 import Control.Monad
-import Data.Attoparsec(maybeResult)
 import Data.Attoparsec.Char8
 import Data.ByteString(ByteString)
 import qualified Data.ByteString.Char8 as BC

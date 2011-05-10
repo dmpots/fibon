@@ -19,7 +19,6 @@ import Fibon.Run.Log as Log
 import qualified Fibon.Run.SysTools as SysTools
 import Statistics.Sample
 import System.Directory
-import System.Exit
 import System.FilePath
 import System.IO
 import System.Process

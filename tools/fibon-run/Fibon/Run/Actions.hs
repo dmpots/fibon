@@ -21,7 +21,6 @@ import qualified Fibon.Run.SysTools as SysTools
 import Control.Monad.Error
 import Control.Monad.Reader
 import System.Directory
-import System.Exit
 import System.FilePath
 import System.Process
 

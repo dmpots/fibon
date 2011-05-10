@@ -103,7 +103,7 @@ runWithInitialFlags fc progEnv cm = toConfig finalState
   finalState = execState (configState cm) startState
 
 toConfig :: (ConfigState ConfigMap) -> Configuration
-toConfig state = state {
+toConfig cState = cState {
     flags =
       FlagConfig {
           configureFlags = Map.findWithDefault [] ConfigureFlags configMap
@@ -112,7 +112,7 @@ toConfig state = state {
       }
   }
   where
-    configMap = flags state
+    configMap = flags cState
 
 fromFlagConfig :: FlagConfig -> ConfigMap
 fromFlagConfig fc =
