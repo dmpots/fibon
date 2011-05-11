@@ -5,6 +5,7 @@ where
 
 data InputSize =
     Test
+  | Train
   | Ref
   deriving(Eq, Read, Show, Ord, Enum)
 

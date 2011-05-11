@@ -122,6 +122,9 @@ template grpName bmName exName = unlines [
   "mkInstance Test = sharedConfig {",
   "        flagConfig = flgCfg",
   "    }",
+  "mkInstance Train = sharedConfig {",
+  "        flagConfig = flgCfg",
+  "    }",
   "mkInstance Ref  = sharedConfig {",
   "        flagConfig = flgCfg",
   "    }"
