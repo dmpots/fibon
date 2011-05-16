@@ -104,9 +104,9 @@ Executable fibon-run
                 , mtl         == 1.1.*
                 , directory   >= 1.0 && < 1.2
                 , filepath    >= 1.1 && < 1.3
-                , hslogger    == 1.0.*
+                , hslogger    >= 1.0 && < 1.2
                 , process     == 1.0.*
-                , time        == 1.1.*
+                , time        >= 1.1 && < 1.3
                 , old-locale  == 1.0.*
                 , old-time    == 1.0.*
                 , statistics  >= 0.6 && < 0.8.1
@@ -165,10 +165,10 @@ Executable fibon-nofib
                   , directory   >= 1.0 && < 1.2
                   , Cabal       == 1.8.*
                   , process     == 1.0.*
-                  , hslogger    == 1.0.*
+                  , hslogger    >= 1.0 && < 1.2
                   , statistics >= 0.6 && < 0.8.1
                   , syb         >= 0.1 && < 0.4
                   , cereal      == 0.3.*
                   , bytestring  == 0.9.*
                   , vector      == 0.6.*
-                  , time        == 1.1.*
+                  , time        >= 1.1 && < 1.3
