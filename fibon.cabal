@@ -83,10 +83,6 @@ source-repository this
   location: git://github.com/dmpots/fibon.git
   tag:      v0.2.0
 
-Flag analyse
-  description: Build the fibon-analyse program
-  default: True
-
 Flag nofib
   description: Build the fibon-nofib program
   default: False
@@ -125,15 +121,10 @@ Executable fibon-init
                 , Cabal       >= 1.8
 
 Executable fibon-analyse
-  if (flag(analyse))
-    buildable: True
-  else
-    buildable: False
   main-is:        Fibon/Analyse/Main.hs
   ghc-options:    -Wall
   hs-source-dirs: tools/fibon-analyse, lib
-  if (flag(analyse))
-    build-depends:    base >= 4 && < 5
+  build-depends:    base >= 4 && < 5
                     , containers
                     , mtl         >= 1.0 && < 2.1
                     , filepath    >= 1.1 && < 1.3
