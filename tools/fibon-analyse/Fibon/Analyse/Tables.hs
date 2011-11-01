@@ -71,6 +71,13 @@ ghcPlusStgTable = ghcTable ++ [
     , ColSpec "StgWallTime" (onExtraStats stgWallTime)
   ]
 
+gcTable :: TableSpec GhcStats
+gcTable = [
+    ColSpec "WallTime" (onExtraStats ghcWallTime)
+  , ColSpec "GCTime"   (onExtraStats gcWallSeconds)
+  , ColSpec "MutTime"  (onExtraStats mutatorWallSeconds)
+  ]
+
 allTables :: [(String, TableSpec GhcStats)]
 allTables = [
       ("fibon", fibonTable)
@@ -78,6 +85,7 @@ allTables = [
     , ("stg",   stgTable)
     , ("ghc",   ghcTable)
     , ("ghc+stg", ghcPlusStgTable)
+    , ("gc", gcTable)
   ]
 
 -- Idea borrowed graciously from nofib-analyse
