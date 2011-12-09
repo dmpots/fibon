@@ -48,30 +48,6 @@ run bb = do
   Log.info $ printf "\n@%s|%s|%s" bmk pwd cmd
   runDirect bb
 
-{-
--- Move this to analysis time
-analyze :: Sample -> ExtraStats -> Int -> Double -> IO RunSummary
-analyze times ghcStats numResamples ci = do
-  let ests = [mean, stdDev]
-  res   <- withSystemRandom $ \gen ->
-            resample gen ests numResamples times :: IO [Resample]
-  let [em,es] = bootstrapBCA ci times ests res
-  let runData = RunSummary {
-                timeSummary =
-                  TimeMeasurement {
-                      meanTime     = estPoint em
-                    , meanTimeLB   = estLowerBound em
-                    , meanTimeUB   = estUpperBound em
-                    , meanStddev   = estPoint es
-                    , meanStddevUB = estLowerBound es
-                    , meanStddevLB = estUpperBound es
-                    , confidence   = ci
-                  }
-              , statsSummary = ghcStats
-  }
-  return runData
--}
-
 checkResult :: BenchmarkBundle -> ExitCode -> IO (Maybe [RunFailure])
 checkResult bb exitCode = do
   outputs <- mapM (checkOutput bb) (output . benchDetails $ bb)
@@ -131,12 +107,6 @@ readExtraStats bb = do
         bracket (openFile ((pathToExeRunDir bb) </> f) ReadMode)
                 (hClose)
                 (\h -> B.hGetContents h >>= \s -> B.length s `seq` return s)
-                    --stats <- hGetContents h
-                    -- drop header line in machine readable stats
-                    --let body = (unlines . drop 1 . lines) stats
-                    --case reads body of
-                    --    [(p, _)] -> return p
-                    --    _        -> logParseE)
 
 type RunStepResult = IO (Either [RunFailure] RunDetail)
 
