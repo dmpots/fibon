@@ -39,8 +39,9 @@ main = do
   logState <- Log.startLogger logPath logPath uniq
   progEnv <- getEnvironment
   let bundles = makeBundles runConfig workingDir benchRoot uniq progEnv
-  results <- mapM (runAndReport action) bundles
-  B.writeFile (Log.binaryPath logState) ((encode . catMaybes) results)
+  mapM_ dumpBundleConfig bundles
+  results <- runUptoStep action bundles
+  B.writeFile (Log.binaryPath logState) (encode results)
   Log.stopLogger logState
 
 parseArgsOrDie :: IO Opt
@@ -53,33 +54,55 @@ parseArgsOrDie = do
         Just msg -> putStrLn msg >> exitSuccess
         Nothing  -> return opts
 
-type RunResult = Maybe FibonResult
-type RunCont a = (a -> IO RunResult)
-runAndReport :: Action -> BenchmarkBundle -> IO RunResult
-runAndReport action bundle = do
-  Log.notice $ "Benchmark: "++ (bundleName bundle)++ " action="++(show action)
-  dumpBundleConfig bundle
-  case action of
-    Sanity -> run sanityCheckBundle  (const $ return Nothing)
-    Build  -> run buildBundle        (\(BuildData time _size) -> do
-                Log.info (printf "Build completed in %0.2f seconds" time)
-                return Nothing
-              )
-    Run    -> run runBundle          (\fr@(FibonResult n _bd rd) -> do
-                Log.result(show fr)
-                Log.summary(printf "%s %.4f" n ((meanTime . summary) rd))
-                return (Just fr)
-              )
-  where
-  run :: Show a => ActionRunner a -> RunCont a -> IO RunResult
-  run = runAndLogErrors bundle
+runUptoStep :: Action -> [BenchmarkBundle] -> IO [FibonResult]
+runUptoStep stopAction bundles = do
+  sane <- mapM runSanityStep bundles
+  if (stopAction == Sanity) then
+    return []
+    else  do
+      built <- mapM runBuildStep (catMaybes sane)
+      if (stopAction == Build) then
+        return []
+        else do
+        results <- mapM runRunStep (catMaybes built)
+        return (catMaybes results)
 
-runAndLogErrors :: Show a
-                => BenchmarkBundle
-                -> ActionRunner a
-                -> RunCont a
-                -> IO RunResult
-runAndLogErrors bundle act cont = do
+runSanityStep :: BenchmarkBundle ->  IO (Maybe BenchmarkBundle)
+runSanityStep bb = do
+  logAction Sanity bb
+  r <- runAndLogErrors bb sanityCheckBundle
+  case r of
+    Nothing -> return Nothing
+    Just _  -> return (Just bb)
+
+runBuildStep :: BenchmarkBundle -> IO (Maybe (BuildData, BenchmarkBundle))
+runBuildStep bb = do
+  logAction Build bb
+  r <- runAndLogErrors bb buildBundle
+  case r of
+    Nothing -> return Nothing
+    Just bd -> do
+      Log.info (printf "Build completed in %0.2f seconds" (buildTime bd))
+      return (Just (bd, bb))
+
+runRunStep :: (BuildData, BenchmarkBundle) -> IO (Maybe FibonResult)
+runRunStep (bd, bb) = do
+  logAction Run bb
+  r <- runAndLogErrors bb runBundle
+  case r of
+    Nothing -> return Nothing
+    Just rd -> do
+      let fr = FibonResult (bundleName bb) bd rd
+      Log.result(show fr)
+      Log.summary(printf "%s %.4f" (bundleName bb) ((meanTime . summary) rd))
+      return (Just fr)
+
+logAction :: Action -> BenchmarkBundle -> IO ()
+logAction action bundle =
+  Log.notice $ "Benchmark["++(show action)++"] " ++ (bundleName bundle)
+
+runAndLogErrors :: BenchmarkBundle -> ActionRunner a -> IO (Maybe a)
+runAndLogErrors bundle act = do
   result <- try (act bundle)
   -- result could fail from an IOError, or from a failure in the RunMonad
   case result of
@@ -87,7 +110,7 @@ runAndLogErrors bundle act cont = do
     Right res ->
       case res of
         Left  e -> logError (show e) >> return Nothing
-        Right r -> cont r
+        Right r -> return (Just r)
    where
    name = bundleName bundle
    logError s = do Log.warn $ "Error running: "  ++ name

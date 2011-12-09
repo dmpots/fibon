@@ -56,16 +56,13 @@ sanityCheckBundle bb = runFibonMonad bb $ do
 
 buildBundle :: BenchmarkBundle -> IO (Either FibonError BuildData)
 buildBundle bb = runFibonMonad bb $ do
-  SanityComplete   <- runAction Sanity
   BuildComplete br <- runAction Build
   return br
 
-runBundle :: BenchmarkBundle -> IO (Either FibonError FibonResult)
+runBundle :: BenchmarkBundle -> IO (Either FibonError RunData)
 runBundle bb = runFibonMonad bb $ do
-  SanityComplete   <- runAction Sanity
-  BuildComplete br <- runAction Build
   RunComplete   rr <- runAction Run
-  return $ FibonResult (bundleName bb) br rr
+  return rr
 
 prepNofibBundle :: BenchmarkBundle -> IO (Either FibonError ())
 prepNofibBundle bb = runFibonMonad bb $ do
@@ -78,17 +75,14 @@ runFibonMonad bb a = runReaderT (runErrorT a) bb
 
 runAction :: Action -> FibonRunMonad ActionResult
 runAction Sanity = do
-  io $ Log.notice "  Checking..."
   sanityCheck
   return SanityComplete
 runAction Build = do
-  io $ Log.notice "  Building..."
   prepConfigure
   runConfigure
   r <- runBuild
   return $ BuildComplete r
 runAction Run = do
-  io $ Log.notice "  Running..."
   prepRun pathToExeBuildDir
   r <- runRun
   return $ RunComplete r
