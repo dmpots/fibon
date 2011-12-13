@@ -99,7 +99,6 @@ runSteps act bs = catMaybes `liftM` mapM act bs
  ------------------------------------------------------------------------------}
 runSanityStep :: BenchmarkBundle ->  IO (Maybe BenchmarkBundle)
 runSanityStep bb = do
-  logAction Sanity bb
   r <- runAndLogErrors bb sanityCheckBundle
   case r of
     Nothing -> return Nothing
