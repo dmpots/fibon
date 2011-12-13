@@ -2,6 +2,7 @@ module Fibon.Run.CommandLine (
     Opt(..)
   , UsageError
   , parseCommandLine
+  , ReuseDir
 )
 where
 
@@ -13,6 +14,7 @@ import Fibon.Run.Manifest
 import System.Console.GetOpt
 
 type UsageError = String
+type ReuseDir   = Maybe FilePath -- path to directory of already built benchmarks
 data Opt = Opt {
       optConfig      :: ConfigId
     , optHelpMsg     :: Maybe String
@@ -21,6 +23,7 @@ data Opt = Opt {
     , optSizeSetting :: Maybe InputSize
     , optIterations  :: Maybe Int
     , optAction      :: Action
+    , optReuseDir    :: ReuseDir
   }
 
 defaultOpts :: Opt
@@ -32,6 +35,7 @@ defaultOpts = Opt {
     , optSizeSetting = Nothing
     , optIterations  = Nothing
     , optAction      = Run
+    , optReuseDir    = Nothing
   }
 
 
@@ -120,6 +124,10 @@ options = [
         (errs, opt {optAction = fromMaybe (optAction opt) act})) "Action"
       )
       "override default action"
+    ,
+    Option ['r'] ["reuse"]
+      (ReqArg (\dir (e, opt) -> (e, opt {optReuseDir = Just dir})) "DIR")
+      "reuse build results from directory"
   ]
 
 usage :: String

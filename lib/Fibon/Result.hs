@@ -6,6 +6,7 @@ module Fibon.Result (
   , RunSummary(..)
   , RunDetail(..)
   , ExtraStats
+  , noBuildData
 )
 where
 import Data.ByteString(ByteString)
@@ -23,6 +24,9 @@ data BuildData = BuildData {
     , buildSize :: String  -- ^ Size of the program
   }
   deriving(Read, Show, Data, Typeable)
+
+noBuildData :: BuildData
+noBuildData  = BuildData 0 ""
 
 data RunData = RunData {
     summary :: RunSummary
