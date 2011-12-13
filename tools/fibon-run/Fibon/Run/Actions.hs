@@ -20,9 +20,12 @@ import qualified Fibon.Run.Log as Log
 import qualified Fibon.Run.SysTools as SysTools
 import Control.Monad.Error
 import Control.Monad.Reader
+import qualified Control.Exception as C
+import Control.Concurrent(forkIO, newEmptyMVar, putMVar, takeMVar)
 import System.Directory
 import System.FilePath
 import System.Process
+import System.IO (hClose, hGetContents)
 
 type FibonRunMonad = ErrorT FibonError (ReaderT BenchmarkBundle IO)
 
@@ -195,7 +198,7 @@ runCabalCommand cmd flagsSelector = do
   let fullArgs = ourArgs ++ userArgs
       userArgs = (flagsSelector . fullFlags) bb
       ourArgs  = [cmd, "--builddir="++(pathToCabalWorkDir bb)]
-  (_, time) <- timeInDir (pathToBench bb) $ exec SysTools.cabal fullArgs
+  (_, time) <- timeIt $ execInDir SysTools.cabal fullArgs (pathToBench bb)
   return time
 
 runSizeCommand :: FibonRunMonad String
@@ -203,15 +206,11 @@ runSizeCommand = do
   bb <- ask
   exec (SysTools.size) [(pathToExe bb)]
 
-
-timeInDir :: FilePath -> FibonRunMonad a -> FibonRunMonad (a, Double)
-timeInDir fp action = do
-  dir <- io $ getCurrentDirectory
-  io $ setCurrentDirectory fp
+timeIt :: FibonRunMonad a -> FibonRunMonad (a, Double)
+timeIt action = do
   start <- io $ getTime
   r <- action
   end <- io $ getTime
-  io $ setCurrentDirectory dir
   let !delta = end - start
   return (r, delta)
 
@@ -219,8 +218,14 @@ io :: IO a -> FibonRunMonad a
 io = liftIO
 
 exec :: FilePath -> [String] -> FibonRunMonad String
-exec cmd args = do
-  (exit, out, err) <- io $ readProcessWithExitCode cmd args []
+exec exe args = exec' (createProcessCommand exe args Nothing)
+
+execInDir :: FilePath -> [String] -> FilePath -> FibonRunMonad String
+execInDir exe args dir = exec' (createProcessCommand exe args (Just dir))
+
+exec' :: CreateProcess -> FibonRunMonad String
+exec' cmd = do
+  (exit, out, err) <- io $ readCreateProcessWithExitCode cmd
   io $ Log.info ("COMMAND: "++fullCommand)
   io $ Log.info ("STDOUT: \n"++out)
   io $ Log.info ("STDERR: \n"++err)
@@ -229,8 +234,53 @@ exec cmd args = do
     ExitFailure _ -> throwError $ BuildError msg
   where
   msg         = "Failed running command: " ++ fullCommand 
-  fullCommand = cmd ++ stringify args
+  fullCommand = getPrettyCommand cmd
 
+createProcessCommand :: FilePath -> [String] -> Maybe FilePath -> CreateProcess
+createProcessCommand prog args workingDir =
+  (proc prog args){ std_in  = CreatePipe,
+                    std_out = CreatePipe,
+                    std_err = CreatePipe,
+                    cwd     = workingDir}
+
+-- Runs the command specified by the CreateProcess and returns the exit code,
+-- stdout and std error.
+--
+-- Code copied from the defition of System.Process.readProcessWithExitCode
+readCreateProcessWithExitCode :: CreateProcess -> IO (ExitCode, String, String)
+readCreateProcessWithExitCode cmd = do
+  (Just inh, Just outh, Just errh, pid) <- createProcess cmd
+  outMVar <- newEmptyMVar
+
+  -- fork off a thread to start consuming stdout
+  out  <- hGetContents outh
+  _ <- forkIO $ C.evaluate (length out) >> putMVar outMVar ()
+
+  -- fork off a thread to start consuming stderr
+  err  <- hGetContents errh
+  _ <- forkIO $ C.evaluate (length err) >> putMVar outMVar ()
+
+  -- now write and flush any input
+  -- in our case just close stdin since we have no input
+  --when (not (null input)) $ do hPutStr inh input; hFlush inh
+  hClose inh -- done with stdin
+
+  -- wait on the output
+  takeMVar outMVar
+  takeMVar outMVar
+  hClose outh
+  hClose errh
+
+  -- wait on the process
+  ex <- waitForProcess pid
+
+  return (ex, out, err)
+
+getPrettyCommand :: CreateProcess -> String
+getPrettyCommand cmd =
+  case cmdspec cmd of
+    ShellCommand s   -> s
+    RawCommand   p a -> p ++ stringify a
 
 joinWith :: a -> [[a]] -> [a]
 joinWith a = concatMap (a:)
