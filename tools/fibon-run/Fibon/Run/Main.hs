@@ -4,6 +4,7 @@ module Main (
 where 
 import Control.Monad
 import Control.Exception
+import qualified Control.Concurrent.ParallelIO as P
 import qualified Data.ByteString as B
 import Data.Char
 import Data.List
@@ -24,6 +25,7 @@ import System.Directory
 import System.Exit
 import System.Environment
 import System.Locale(defaultTimeLocale)
+import System.Posix(installHandler, Handler(Default), sigINT)
 import System.FilePath
 import Text.Printf
 
@@ -31,6 +33,7 @@ import Text.Printf
 main :: IO ()
 main = do
   opts <- parseArgsOrDie
+  installSignalHandlers
   currentDir <- getCurrentDirectory
   initConfig  <- selectConfig (optConfig opts)
   let runConfig  = mergeConfigOpts initConfig opts
@@ -83,16 +86,20 @@ runOnlyStep Run    bundles = runRunSteps (zip (repeat noBuildData) bundles)
  -- Run a specific step over a list of bundles and filter out failing results
  ------------------------------------------------------------------------------}
 runSanitySteps :: [BenchmarkBundle] -> IO [BenchmarkBundle]
-runSanitySteps = runSteps runSanityStep
+runSanitySteps = runParSteps runSanityStep
 
 runBuildSteps :: [BenchmarkBundle] -> IO [(BuildData, BenchmarkBundle)]
-runBuildSteps = runSteps runBuildStep
+runBuildSteps = runParSteps runBuildStep
 
 runRunSteps :: [(BuildData, BenchmarkBundle)] -> IO [FibonResult]
-runRunSteps = runSteps runRunStep
+runRunSteps = runSeqSteps runRunStep
 
-runSteps :: (a -> IO (Maybe b)) -> [a] -> IO [b]
-runSteps act bs = catMaybes `liftM` mapM act bs
+runParSteps, runSeqSteps :: (a -> IO (Maybe b)) -> [a] -> IO [b]
+runParSteps  = runSteps P.parallel
+runSeqSteps  = runSteps sequence
+
+runSteps :: ([IO (Maybe b)] -> IO [Maybe b]) -> (a -> IO (Maybe b)) -> [a] -> IO [b]
+runSteps runner act bs = catMaybes `liftM` runner (map act bs)
 
 {------------------------------------------------------------------------------
  -- Run a specific step over a single bundle
@@ -182,8 +189,7 @@ expandBenchList = concatMap expand
 chooseUniqueNames :: FilePath -> ConfigId -> ReuseDir -> IO (String, String)
 chooseUniqueNames workingDir configName mbReuseId = do
   checkReuseDir workingDir mbReuseId
-  wdExists <- doesDirectoryExist workingDir
-  unless wdExists (createDirectory workingDir)
+  createUnlessExists workingDir
   dirs  <- getDirectoryContents workingDir
   time  <- getZonedTime
   let numbered = filter (\x -> length x > 0) $ map (takeWhile isDigit) dirs
@@ -194,10 +200,14 @@ chooseUniqueNames workingDir configName mbReuseId = do
           _  -> (format . (+1) . read . last . sort) numbered
       logUniq = maybe nextAvailableUniq (++"."++timestamp) mbReuseId
       runUniq = maybe nextAvailableUniq (id) mbReuseId
+  mapM_ createUnlessExists (map (workingDir </>) [logUniq, runUniq])
   return (logUniq, runUniq)
   where
   format :: Int -> String
   format d = printf "%03d.%s" d configName
+  createUnlessExists dir = do
+    exists <- doesDirectoryExist dir
+    unless exists (createDirectory dir)
 
 -- Make sure that the directory where we are trying to reuse the build results
 -- actually exists
@@ -262,3 +272,13 @@ parseArgsOrDie = do
       case optHelpMsg opts of
         Just msg -> putStrLn msg >> exitSuccess
         Nothing  -> return opts
+
+{------------------------------------------------------------------------------
+ -- Signal handling
+ --
+ -- We need to install a Ctrl-C signal handler to promptly shutdown the
+ -- program. Without this handler the parallel rts will swallow our signals when
+ -- used with the ParallelIO.parallel thread pool.
+ ------------------------------------------------------------------------------}
+installSignalHandlers :: IO ()
+installSignalHandlers = installHandler sigINT Default Nothing >> return ()

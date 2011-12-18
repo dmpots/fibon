@@ -81,7 +81,6 @@ runAction Sanity = do
   sanityCheck
   return SanityComplete
 runAction Build = do
-  prepConfigure
   runConfigure
   r <- runBuild
   return $ BuildComplete r
@@ -126,13 +125,6 @@ checkForExpectedOutFiles = do
     return (not e1 && not e2)
   diffFiles =
     catMaybes . map (\o -> case o of (_, Diff f) -> Just f ; _ -> Nothing)
-
-prepConfigure :: FibonRunMonad ()
-prepConfigure = do
-  bb <- ask
-  let ud = (workDir bb) </> (unique bb)
-  udExists <- io $ doesDirectoryExist ud
-  unless udExists (io $ createDirectory ud)
 
 runConfigure :: FibonRunMonad ()
 runConfigure = do

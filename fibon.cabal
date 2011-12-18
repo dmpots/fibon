@@ -89,7 +89,7 @@ Flag nofib
 
 Executable fibon-run
   main-is:          Fibon/Run/Main.hs
-  ghc-options: -Wall -threaded
+  ghc-options: -Wall -threaded -rtsopts
   include-dirs: config
   hs-source-dirs: tools/fibon-run
                   lib
@@ -110,6 +110,8 @@ Executable fibon-run
                 , bytestring  == 0.9.*
                 , cereal      == 0.3.*
                 , syb         >= 0.1 && < 0.4
+                , parallel-io >= 0.3 && < 0.4
+                , unix
 
 Executable fibon-init
   main-is:        Main.hs
