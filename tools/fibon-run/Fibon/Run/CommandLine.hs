@@ -3,6 +3,7 @@ module Fibon.Run.CommandLine (
   , UsageError
   , parseCommandLine
   , ReuseDir
+  , RunMode(..)
 )
 where
 
@@ -15,6 +16,7 @@ import System.Console.GetOpt
 
 type UsageError = String
 type ReuseDir   = Maybe FilePath -- path to directory of already built benchmarks
+data RunMode    = Sequential | Parallel
 data Opt = Opt {
       optConfig      :: ConfigId
     , optHelpMsg     :: Maybe String
@@ -24,6 +26,7 @@ data Opt = Opt {
     , optIterations  :: Maybe Int
     , optAction      :: Action
     , optReuseDir    :: ReuseDir
+    , optRunMode     :: RunMode
   }
 
 defaultOpts :: Opt
@@ -36,6 +39,7 @@ defaultOpts = Opt {
     , optIterations  = Nothing
     , optAction      = Run
     , optReuseDir    = Nothing
+    , optRunMode     = Sequential
   }
 
 
@@ -128,6 +132,10 @@ options = [
     Option ['r'] ["reuse"]
       (ReqArg (\dir (e, opt) -> (e, opt {optReuseDir = Just dir})) "DIR")
       "reuse build results from directory"
+    ,
+    Option ['p'] ["parallel"]
+      (NoArg (\(e, opt) -> (e, opt {optRunMode = Parallel})))
+      "run benchmarks in parallel (for testing)"
   ]
 
 usage :: String

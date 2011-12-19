@@ -62,8 +62,8 @@ main = do
   -- then only run the "Run" action.
   results <-
     case reuseDir of
-      Nothing -> runUptoStep action bundles
-      Just _  -> runOnlyStep Run    bundles
+      Nothing -> runUptoStep (optRunMode opts) action bundles
+      Just _  -> runOnlyStep (optRunMode opts) Run    bundles
 
   -- Write out the benchmark rsults and shutdown the logger
   B.writeFile (Log.binaryPath logState) (encode results)
@@ -72,46 +72,57 @@ main = do
 {------------------------------------------------------------------------------
  -- Run a single action or an action and its prerequisites
  ------------------------------------------------------------------------------}
-runUptoStep :: Action -> [BenchmarkBundle] -> IO [FibonResult]
-runUptoStep Sanity bundles = runSanitySteps bundles >> return []
-runUptoStep Build  bundles = runSanitySteps bundles >>= runBuildSteps >> return []
-runUptoStep Run    bundles = runSanitySteps bundles >>= runBuildSteps >>= runRunSteps
+runUptoStep :: RunMode -> Action -> [BenchmarkBundle] -> IO [FibonResult]
+runUptoStep mode step bundles =
+  case step of
+    Sanity -> sanity bundles >> return []
+    Build  -> sanity bundles >>= build >> return []
+    Run    -> sanity bundles >>= build >>= run
+ where sanity = runParSteps    runSanityStep
+       build  = runParSteps    runBuildStep
+       run    = (runMode mode) runRunStep
 
-runOnlyStep :: Action -> [BenchmarkBundle] -> IO [FibonResult]
-runOnlyStep Sanity bundles = runSanitySteps bundles >> return []
-runOnlyStep Build  bundles = runBuildSteps  bundles >> return []
-runOnlyStep Run    bundles = runRunSteps (zip (repeat noBuildData) bundles)
+runOnlyStep :: RunMode -> Action -> [BenchmarkBundle] -> IO [FibonResult]
+runOnlyStep mode step bundles =
+  case step of
+    Sanity -> sanity bundles >> return []
+    Build  -> build  bundles >> return []
+    Run    -> run (zip (repeat noBuildData) bundles)
+ where sanity = runParSteps    runSanityStep
+       build  = runParSteps    runBuildStep
+       run    = (runMode mode) runRunStep
+
+runMode :: RunMode -> StepRunner input output
+runMode Sequential = runSeqSteps
+runMode Parallel   = runParSteps
 
 {------------------------------------------------------------------------------
  -- Run a specific step over a list of bundles and filter out failing results
  ------------------------------------------------------------------------------}
-runSanitySteps :: [BenchmarkBundle] -> IO [BenchmarkBundle]
-runSanitySteps = runParSteps runSanityStep
+type Sequencer output = ([IO (Maybe output)] -> IO [Maybe output])
+type Step input output = (input -> IO (Maybe output))
+type StepRunner input output = Step input output -> [input] -> IO [output]
 
-runBuildSteps :: [BenchmarkBundle] -> IO [(BuildData, BenchmarkBundle)]
-runBuildSteps = runParSteps runBuildStep
-
-runRunSteps :: [(BuildData, BenchmarkBundle)] -> IO [FibonResult]
-runRunSteps = runSeqSteps runRunStep
-
-runParSteps, runSeqSteps :: (a -> IO (Maybe b)) -> [a] -> IO [b]
+runParSteps :: StepRunner input output
 runParSteps  = runSteps P.parallel
+
+runSeqSteps :: StepRunner input output
 runSeqSteps  = runSteps sequence
 
-runSteps :: ([IO (Maybe b)] -> IO [Maybe b]) -> (a -> IO (Maybe b)) -> [a] -> IO [b]
-runSteps runner act bs = catMaybes `liftM` runner (map act bs)
+runSteps :: Sequencer output -> Step input output -> [input] -> IO [output]
+runSteps runner step bs = catMaybes `liftM` runner (map step bs)
 
 {------------------------------------------------------------------------------
  -- Run a specific step over a single bundle
  ------------------------------------------------------------------------------}
-runSanityStep :: BenchmarkBundle ->  IO (Maybe BenchmarkBundle)
+runSanityStep :: Step BenchmarkBundle BenchmarkBundle
 runSanityStep bb = do
   r <- runAndLogErrors bb sanityCheckBundle
   case r of
     Nothing -> return Nothing
     Just _  -> return (Just bb)
 
-runBuildStep :: BenchmarkBundle -> IO (Maybe (BuildData, BenchmarkBundle))
+runBuildStep :: Step BenchmarkBundle (BuildData, BenchmarkBundle)
 runBuildStep bb = do
   logAction Build bb
   r <- runAndLogErrors bb buildBundle
@@ -121,7 +132,7 @@ runBuildStep bb = do
       Log.info (printf "Build completed in %0.2f seconds" (buildTime bd))
       return (Just (bd, bb))
 
-runRunStep :: (BuildData, BenchmarkBundle) -> IO (Maybe FibonResult)
+runRunStep :: Step (BuildData, BenchmarkBundle) FibonResult
 runRunStep (bd, bb) = do
   logAction Run bb
   r <- runAndLogErrors bb runBundle
