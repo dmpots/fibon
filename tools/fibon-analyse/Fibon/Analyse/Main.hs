@@ -17,9 +17,12 @@ main = do
       let fmt  = optOutputFormat opts
           norm = getNormFun opts
           tableSpec = optTableSpec opts
-      putStrLn $ renderSummaryTable rs norm fmt tableSpec
-      putStrLn $ renderTables       rs norm fmt tableSpec
-      putStrLn $ renderFullTable    rs norm fmt tableSpec
+      if optFlatResults opts then
+        putStr $ renderFlatOutput rs
+        else do
+          putStrLn $ renderSummaryTable rs norm fmt tableSpec
+          putStrLn $ renderTables       rs norm fmt tableSpec
+          putStrLn $ renderFullTable    rs norm fmt tableSpec
 
 
 getCommandLine :: IO (Opt, [FilePath])

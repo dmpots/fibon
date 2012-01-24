@@ -3,14 +3,17 @@ module Fibon.Analyse.Output (
   , renderTables
   , renderSummaryTable
   , renderFullTable
+  , renderFlatOutput  
 )
 where
 
 import qualified Data.Map as M
+import Data.List(intersperse)
 import Fibon.Analyse.Analysis
 import Fibon.Analyse.Metrics
 import Fibon.Analyse.Result
 import Fibon.Analyse.Tables
+import Fibon.Analyse.ExtraStats.GhcStats(GhcStats(..))
 import Text.Tabular
 import Text.Printf
 import qualified Text.Tabular.AsciiArt as Ascii
@@ -131,3 +134,31 @@ includeUnits Csv            = False
 includeUnits Latex          = False
 includeUnits _              = True
 
+
+type Size = String
+type Tune = String
+renderFlatOutput :: [ResultColumn GhcStats] -> String
+renderFlatOutput rs = concat rowNames ++ "\n" ++ concat rows
+  where rows = concatMap renderResultColumn rs
+        rowNames = intersperse " " ("Benchmark":"Size":"Tune":tableColNames)
+        tableColNames = map cName (ghcTable)
+
+renderResultColumn :: ResultColumn GhcStats -> [String]
+renderResultColumn resultCol = map (renderRow size tune resultCol) benchmarks
+  where
+  benchmarks = M.keys (results resultCol)
+  (size, tune) = parseResultLabel (resultLabel resultCol)
+  parseResultLabel name = (s, t)
+    where s = takeWhile (/= '-') $ dropWhile (== '-') $ dropWhile (/= '-') name
+          t = reverse $ takeWhile (/= '-') $ reverse name
+    
+renderRow :: Size -> Tune -> (ResultColumn GhcStats) -> BenchName -> String
+renderRow size tune result bench =
+  case computeRows [(NormNone, result)] [bench] ghcTable of
+    Left err -> err
+    Right ([(_rowName, perfData)], _) ->
+      bench ++ " " ++ size ++ " " ++ tune ++ 
+      (concatMap (\d -> " " ++ (pprPerfData False d)) perfData) ++ "\n"
+    Right _ -> "fibon-analyze --full: "++bench++" unexpected result"
+
+    

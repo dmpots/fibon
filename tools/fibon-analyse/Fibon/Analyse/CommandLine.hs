@@ -15,6 +15,7 @@ data Opt = Opt {
   , optOutputFormat :: OutputFormat
   , optNormalizeBy  :: NormalizeBy
   , optTableSpec    :: TableSpec GhcStats
+  , optFlatResults  :: Bool  
   }
 
 type UsageError  = String
@@ -27,6 +28,7 @@ defaultOpts = Opt {
   , optOutputFormat = AsciiArt
   , optNormalizeBy  = ByPercent
   , optTableSpec    = defaultTable
+  , optFlatResults  = False
   }
 
 parseCommandLine :: [String] -> Either UsageError (Opt, [FilePath])
@@ -79,6 +81,10 @@ options = [
           Nothing  -> Left $ "Invalid spec: "++a++"\n  try: "++validSpecs))
        "TableSpec")
       ("table spec [" ++ validSpecs  ++ "]")
+    ,
+    Option [] ["flat"]
+      (NoArg $ flip process (\o -> Right $ o {optFlatResults = True}))
+      "output flat results not grouped into a table"
   ]
   where
     setFormat fmt o = Right $ o {optOutputFormat = fmt}

@@ -4,6 +4,7 @@ module Fibon.Analyse.Tables (
   , ColSpec(..)
   , allTables
   , defaultTable
+  , ghcTable
 )
 where
 

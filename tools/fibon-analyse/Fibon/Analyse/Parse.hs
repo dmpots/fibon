@@ -58,6 +58,7 @@ groupResults = foldr grouper M.empty
   benchType r = dropWhile (/= '-') (benchName r)
 
 
+
 -- | Parses the output of the @size@ command.
 --   The output is of the form:
 --
