@@ -27,6 +27,7 @@ data Opt = Opt {
     , optAction      :: Action
     , optReuseDir    :: ReuseDir
     , optRunMode     :: RunMode
+    , optIniConfig   :: Bool
   }
 
 defaultOpts :: Opt
@@ -40,6 +41,7 @@ defaultOpts = Opt {
     , optAction      = Run
     , optReuseDir    = Nothing
     , optRunMode     = Sequential
+    , optIniConfig   = False
   }
 
 
@@ -136,6 +138,11 @@ options = [
     Option ['p'] ["parallel"]
       (NoArg (\(e, opt) -> (e, opt {optRunMode = Parallel})))
       "run benchmarks in parallel (for testing)"
+    ,
+    Option [] ["dump-config"]
+      (NoArg (\(e, opt) -> (e, opt {optIniConfig = True})))
+      "dump config to stdout in ini format"
+
   ]
 
 usage :: String

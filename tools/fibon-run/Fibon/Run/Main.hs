@@ -13,6 +13,7 @@ import Data.Serialize
 import Data.Time.LocalTime(getZonedTime)
 import Data.Time.Format(formatTime)
 import Fibon.Benchmarks
+import Fibon.BenchmarkInstance(BenchmarkInstance(stdinInput))
 import Fibon.FlagConfig
 import Fibon.Result
 import Fibon.Run.Actions
@@ -56,7 +57,7 @@ main = do
   -- build.
   progEnv <- getEnvironment
   let bundles = makeBundles runConfig workingDir benchRoot reuseId progEnv
-  mapM_ dumpBundleConfig bundles
+  dumpConfig (optIniConfig opts) bundles
 
   -- Run the benchmarks to get the results. If we are reusing a previous build
   -- then only run the "Run" action.
@@ -252,22 +253,42 @@ mergeConfigOpts rc opt = rc {
     , iterations = maybe (iterations rc) id  (optIterations  opt)
   }
 
+dumpConfig :: Bool -> [BenchmarkBundle] -> IO ()
+dumpConfig True  bbs = mapM_ dumpBundleConfigIni bbs >> exitSuccess
+dumpConfig False bbs = mapM_ dumpBundleConfig bbs
 
 dumpBundleConfig :: BenchmarkBundle -> IO ()
 dumpBundleConfig bb = do
   Log.config configString
   where
   configString = bundleName bb
-                  ++ dumpConfig "ConfigFlags" (configureFlags . fullFlags)
-                  ++ dumpConfig "BuildFlags"  (buildFlags . fullFlags)
-                  ++ dumpConfig "RunFlags"    (runFlags . fullFlags)
-                  ++ dumpConfig "RunScript"   script
-                  ++ dumpConfig "RunScriptArgs" scriptArgs
-  dumpConfig :: String -> (BenchmarkBundle -> [String]) -> String
-  dumpConfig configName accessor = "\n" ++ paramSpace ++ configName ++
+                  ++ dump "ConfigFlags" (configureFlags . fullFlags)
+                  ++ dump "BuildFlags"  (buildFlags . fullFlags)
+                  ++ dump "RunFlags"    (runFlags . fullFlags)
+                  ++ dump "RunScript"   script
+                  ++ dump "RunScriptArgs" scriptArgs
+  dump :: String -> (BenchmarkBundle -> [String]) -> String
+  dump configName accessor = "\n" ++ paramSpace ++ configName ++
     (concatMap (\f -> "\n" ++ flagSpaces ++ f) (accessor bb))
   paramSpace = "  "
   flagSpaces = "  "++ paramSpace
+  script     =       map fst . maybeToList . runScript
+  scriptArgs = concatMap snd . maybeToList . runScript
+
+dumpBundleConfigIni :: BenchmarkBundle -> IO ()
+dumpBundleConfigIni bb = do
+  putStrLn configString
+  where
+  configString = "[" ++ bundleName bb ++"]"
+                  ++ dump "configure" (configureFlags . fullFlags)
+                  ++ dump "build"  (buildFlags . fullFlags)
+                  ++ dump "run"    (runFlags . fullFlags)
+                  ++ dump "stdin"  (maybeToList . stdinInput . benchDetails)
+                  ++ dump "script" script
+                  ++ dump "script-args"   scriptArgs
+  dump :: String -> (BenchmarkBundle -> [String]) -> String
+  dump configName accessor = "\n"  ++ configName ++ " = " ++
+    (concatMap (\f -> f ++ " ") (accessor bb))
   script     =       map fst . maybeToList . runScript
   scriptArgs = concatMap snd . maybeToList . runScript
 
